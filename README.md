@@ -4,7 +4,7 @@ An Arch Linux desktop: Hyprland (lua config) + quickshell UI, with a zsh / kitty
 starship / fastfetch terminal. Configs are installed as symlinks (GNU stow), so the
 files in `~/.config` *are* the files in this repo and edits are tracked by git.
 
-Repository: <https://github.com/zorncbllr/zorncbllr-dots>
+Website: <https://zorncbllr.github.io/zorncbllr-dots/> · Repository: <https://github.com/zorncbllr/zorncbllr-dots>
 
 ![Desktop: bar, media card, clock, fastfetch and cava widgets](docs/screenshots/desktop.png)
 
