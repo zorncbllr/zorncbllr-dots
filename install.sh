@@ -62,9 +62,17 @@ build_local_pkg() { # PKGBUILDs shipped in sdata/dist-arch that aren't in the AU
 
 install_deps() {
   ensure_yay
-  mapfile -t list < <(grep -vE '^\s*(#|$)' "$REPO/packages/packages.txt")
-  log "installing ${#list[@]} packages"
-  yay -S --needed --noconfirm "${list[@]}"
+  local all missing
+  mapfile -t all < <(grep -vE '^\s*(#|$)' "$REPO/packages/packages.txt")
+  # pacman -T prints only unsatisfied dependencies and honours "provides", so
+  # e.g. an installed quickshell-git is not replaced by the repo's quickshell.
+  mapfile -t missing < <(pacman -T "${all[@]}" || true)
+  if (( ${#missing[@]} )); then
+    log "installing ${#missing[@]} missing package(s): ${missing[*]}"
+    yay -S --needed --noconfirm "${missing[@]}"
+  else
+    log "all ${#all[@]} packages already satisfied"
+  fi
   for d in "$REPO"/sdata/dist-arch/illogical-impulse-{microtex-git,bibata-modern-classic-bin}; do
     [[ -f $d/PKGBUILD ]] && build_local_pkg "$d"
   done
