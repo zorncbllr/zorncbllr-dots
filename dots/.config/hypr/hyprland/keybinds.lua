@@ -164,12 +164,32 @@ for i = 1, 2 do
     local focusdir = { "l", "r" }
     hl.bind("SUPER + " .. arrowkey[i], hl.dsp.focus({ direction = focusdir[i] }))
 end
---#/# bind = SUPER + SHIFT, ←/↑/→/↓,, -- Move in direction
+--#/# bind = SUPER + SHIFT, ←/↑/→/↓,, -- Resize active window
+local resizeStep = 30
 for i = 1, 4 do
     local arrowkey = { "Left", "Right", "Up", "Down" }
-    local focusdir = { "l", "r", "u", "d" }
-    hl.bind("SUPER + SHIFT + " .. arrowkey[i], hl.dsp.window.move({ direction = focusdir[i] }),
-        { description = "Window: Move " .. arrowkey[i] })
+    local resizexy = { { -resizeStep, 0 }, { resizeStep, 0 }, { 0, -resizeStep }, { 0, resizeStep } }
+    hl.bind("SUPER + SHIFT + " .. arrowkey[i],
+        hl.dsp.window.resize({ x = resizexy[i][1], y = resizexy[i][2], relative = true }),
+        { repeating = true, description = "Window: Resize " .. arrowkey[i] })
+end
+
+--#/# bind = CTRL + SUPER, ←/↑/→/↓,, -- Move active window
+--# Tiled windows swap with their neighbour, floating windows get nudged by moveStep pixels
+local moveStep = 40
+for i = 1, 4 do
+    local arrowkey = { "Left", "Right", "Up", "Down" }
+    local movedir = { "l", "r", "u", "d" }
+    local movexy = { { -moveStep, 0 }, { moveStep, 0 }, { 0, -moveStep }, { 0, moveStep } }
+    local dir, dx, dy = movedir[i], movexy[i][1], movexy[i][2]
+    hl.bind("CTRL + SUPER + " .. arrowkey[i], function()
+        local win = hl.get_active_window()
+        if win and win.floating then
+            hl.dispatch(hl.dsp.window.move({ x = dx, y = dy, relative = true }))
+        else
+            hl.dispatch(hl.dsp.window.move({ direction = dir }))
+        end
+    end, { description = "Window: Move " .. arrowkey[i] })
 end
 
 hl.bind("ALT + F4",
@@ -186,7 +206,29 @@ hl.bind("SUPER + SHIFT + ALT + Q", hl.dsp.exec_cmd("hyprctl kill"), { descriptio
 hl.bind("SUPER + Semicolon", hl.dsp.layout("splitratio -0.1"), { repeating = true })
 hl.bind("SUPER + Apostrophe", hl.dsp.layout("splitratio +0.1"), { repeating = true })
 --# Positioning mode
-hl.bind("SUPER + ALT + Space", hl.dsp.window.float({ action = "toggle" }), { description = "Window: Float/Tile" })
+--#/# bind = SUPER, Space,, -- Float/tile (a freshly floated window shrinks to floatScale of the work area)
+local floatScale = 0.8
+local function toggle_float()
+    local win = hl.get_active_window()
+    if not win then return end
+    local wasTiled = not win.floating
+    hl.dispatch(hl.dsp.window.float({ action = "toggle" }))
+    if not wasTiled then return end
+
+    -- Shrink and centre inside the work area, so bars/panels stay uncovered
+    local mon = win.monitor or hl.get_active_monitor()
+    if not mon then return end
+    local res = type(mon.reserved) == "table" and mon.reserved or {}
+    local padL, padR = res.left or 0, res.right or 0
+    local padT, padB = res.top or 0, res.bottom or 0
+    local areaX, areaY = mon.x + padL, mon.y + padT
+    local areaW, areaH = mon.width - padL - padR, mon.height - padT - padB
+    local w, h = math.floor(areaW * floatScale), math.floor(areaH * floatScale)
+    hl.dispatch(hl.dsp.window.resize({ x = w, y = h }))
+    hl.dispatch(hl.dsp.window.move({ x = math.floor(areaX + (areaW - w) / 2), y = math.floor(areaY + (areaH - h) / 2) }))
+end
+hl.bind("SUPER + Space", toggle_float, { description = "Window: Float/Tile" })
+hl.bind("SUPER + ALT + Space", toggle_float) -- # [hidden] alias
 hl.bind("SUPER + D", hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" }),
     { description = "Window: Maximize" })
 hl.bind("SUPER + F", hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }),
@@ -265,18 +307,19 @@ for i = 1, 10 do
     end)
 end
 
---#/# bind = CTRL+SUPER, ←/→,, -- Focus left/right
 --#/# bind = CTRL+SUPER+ALT, ←/→,, -- # [hidden] Focus busy left/right
-for i = 1, 2 do
-    local keys = { "Left", "Right" }
-    local prefix = { "r-", "r+" }
-    local descdir = { "left", "right" }
-    hl.bind("CTRL + SUPER + " .. keys[i], hl.dsp.focus({ workspace = prefix[i] .. "1" }), {description = "Workspace: Focus " .. descdir[i]})
-end
 for i = 1, 2 do
     local keys = { "Left", "Right" }
     local prefix = { "m-", "m+" }
     hl.bind("CTRL + SUPER + ALT + " .. keys[i], hl.dsp.focus({ workspace = prefix[i] .. "1" }))
+end
+--#/# bind = CTRL+SUPER+ALT, Page_↑/↓,, -- Focus left/right
+for i = 1, 2 do
+    local keys = { "Page_Up", "Page_Down" }
+    local prefix = { "r-", "r+" }
+    local descdir = { "left", "right" }
+    hl.bind("CTRL + SUPER + ALT + " .. keys[i], hl.dsp.focus({ workspace = prefix[i] .. "1" }),
+        { description = "Workspace: Focus " .. descdir[i] })
 end
 --#/# bind = SUPER, Page_↑/↓,, -- Focus left/right
 for i = 1, 4 do
@@ -295,10 +338,15 @@ end
 --## Special
 hl.bind("SUPER + S", hl.dsp.workspace.toggle_special("special"), { description = "Workspace: Toggle scratchpad" })
 hl.bind("SUPER + mouse:275", hl.dsp.workspace.toggle_special("special"))
-for i = 1, 4 do
-    local key = { "BracketLeft", "BracketRight", "Up", "Down" }
-    local prefix = { "-1", "+1", "r-5", "r+5" }
+for i = 1, 2 do
+    local key = { "BracketLeft", "BracketRight" }
+    local prefix = { "-1", "+1" }
     hl.bind("CTRL + SUPER + " .. key[i], hl.dsp.focus({ workspace = prefix[i] }))
+end
+for i = 1, 2 do
+    local key = { "BracketLeft", "BracketRight" }
+    local prefix = { "r-5", "r+5" }
+    hl.bind("CTRL + SUPER + ALT + " .. key[i], hl.dsp.focus({ workspace = prefix[i] }))
 end
 
 --##! Virtual machines
