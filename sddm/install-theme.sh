@@ -62,6 +62,16 @@ render_conf() { # render_conf OUTFILE
     k=${pair%%:*}; v=$(jq -r --arg n "${pair##*:}" '.[$n] // empty' "$colors")
     [[ $v =~ ^#[0-9a-fA-F]{6,8}$ ]] && sed -i -E "s|^${k}=.*|${k}=${v}|" "$1"
   done
+  # Clock settings from the shell config: where the clock sits on the desktop (the unlock
+  # animation ends there), its number of sides and the time format.
+  local cfg="${XDG_CONFIG_HOME:-$HOME/.config}/illogical-impulse/config.json" val
+  [[ -r $cfg ]] || return 0
+  for pair in clockX:.background.widgets.clock.x clockY:.background.widgets.clock.y \
+              cookieSides:.background.widgets.clock.cookie.sides timeFormat:.time.format; do
+    k=${pair%%:*}; val=$(jq -r "${pair#*:} // empty" "$cfg")
+    [[ -n $val && $val != *,* ]] && sed -i -E "s|^${k}=.*|${k}=${val}|" "$1"
+  done
+  return 0
 }
 
 # --- assemble the complete theme in DIR: sources, palette, wallpaper, shapes lib, fonts ----

@@ -68,6 +68,17 @@ Item {
     }
     Timer { interval: 30000; running: true; repeat: true; triggeredOnStart: true; onTriggered: root.refreshBattery() }
 
+    // ---- unlock transition (same timings as the lock screen) -------------------------
+    // On a correct password the blur and overlay drop at once, the wallpaper zooms back from
+    // 1.1x (400 ms), the clock glides from the screen centre to its desktop position (500 ms)
+    // and the "Locked" pill and islands fade out (200 ms). The greeter then shows the desktop
+    // look until SDDM replaces it with the real session.
+    property bool unlocking: false
+    readonly property var curveSpatial: [0.38, 1.21, 0.22, 1.00, 1, 1]   // expressiveDefaultSpatial
+    readonly property var curveEffects: [0.34, 0.80, 0.34, 1.00, 1, 1]   // expressiveEffects
+    readonly property real deskClockX: parseFloat(config.clockX || "235")
+    readonly property real deskClockY: parseFloat(config.clockY || "605")
+
     // ---- state ------------------------------------------------------------------------
     property bool failed: false
     property bool busy: false
@@ -88,77 +99,93 @@ Item {
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
         visible: !root.fx
+        scale: root.unlocking ? 1.0 : parseFloat(config.zoom || "1.1")
+        Behavior on scale { NumberAnimation { duration: 400; easing.type: Easing.BezierSpline; easing.bezierCurve: root.curveSpatial } }
     }
     MultiEffect {
         anchors.fill: parent
         source: wallpaper
         visible: root.fx && wallpaper.status === Image.Ready
-        scale: parseFloat(config.zoom || "1.1")
+        scale: root.unlocking ? 1.0 : parseFloat(config.zoom || "1.1")
+        Behavior on scale { NumberAnimation { duration: 400; easing.type: Easing.BezierSpline; easing.bezierCurve: root.curveSpatial } }
         autoPaddingEnabled: false
         blurEnabled: true
         blurMax: 64
-        blur: parseFloat(config.blur || "1.0")
+        blur: root.unlocking ? 0 : parseFloat(config.blur || "1.0")
     }
     Rectangle {
         anchors.fill: parent
         color: root.cSurface
-        opacity: parseFloat(config.dim || "0.30")
+        opacity: root.unlocking ? 0 : parseFloat(config.dim || "0.30")
     }
 
-    // ---- centred cookie clock + "Locked" pill -----------------------------------------
-    Column {
-        id: centerBlock
-        anchors.centerIn: parent
-        spacing: 10
-        scale: Math.min(1, root.height / 640)
+    // ---- cookie clock + "Locked" pill: centred while locked, glides to its desktop spot ----
+    Item {
+        id: clockBox
+        width: clockColumn.implicitWidth
+        height: clockColumn.implicitHeight
+        // locked: screen centre; unlocking: the desktop widget position from the shell config
+        x: root.unlocking ? Math.max(0, Math.min(root.deskClockX, root.width - width)) : (root.width - width) / 2
+        y: root.unlocking ? Math.max(0, Math.min(root.deskClockY, root.height - height)) : (root.height - height) / 2
+        scale: root.unlocking ? 1 : Math.min(1, root.height / 640)
+        transformOrigin: Item.Center
+        Behavior on x { NumberAnimation { duration: 500; easing.type: Easing.BezierSpline; easing.bezierCurve: root.curveSpatial } }
+        Behavior on y { NumberAnimation { duration: 500; easing.type: Easing.BezierSpline; easing.bezierCurve: root.curveSpatial } }
 
-        CookieClock {
-            anchors.horizontalCenter: parent.horizontalCenter
-            now: root.now
-            timeFormat: config.timeFormat || "h:mm ap"
-            fontExpressive: root.expressiveFont
-            sides: parseInt(config.cookieSides || "14")
-            cPrimary: root.cPrimary
-            cPrimaryContainer: root.cPrimaryContainer
-            cSecondary: root.cSecondary
-            cSecondaryContainer: root.cSecondaryContainer
-            cOnSecondaryContainer: root.cOnSecondaryContainer
-            cTertiary: root.cTertiary
-            cTertiaryContainer: root.cTertiaryContainer
-            cOnTertiaryContainer: root.cOnTertiaryContainer
-        }
+        Column {
+            id: clockColumn
+            spacing: 10
 
-        Item {
-            anchors.horizontalCenter: parent.horizontalCenter
-            visible: root.statusText.length > 0
-            width: pill.width
-            height: pill.height
-            RectangularShadow {
-                anchors.fill: pill
-                radius: pill.radius
-                blur: 14
-                offset: Qt.vector2d(0, 1)
-                spread: 1
-                color: "#4d000000"
-                z: -1
+            CookieClock {
+                anchors.horizontalCenter: parent.horizontalCenter
+                now: root.now
+                timeFormat: config.timeFormat || "h:mm ap"
+                fontExpressive: root.expressiveFont
+                sides: parseInt(config.cookieSides || "14")
+                cPrimary: root.cPrimary
+                cPrimaryContainer: root.cPrimaryContainer
+                cSecondary: root.cSecondary
+                cSecondaryContainer: root.cSecondaryContainer
+                cOnSecondaryContainer: root.cOnSecondaryContainer
+                cTertiary: root.cTertiary
+                cTertiaryContainer: root.cTertiaryContainer
+                cOnTertiaryContainer: root.cOnTertiaryContainer
             }
-            Rectangle {
-                id: pill
-                color: root.cSecondaryContainer
-                radius: 10
-                width: pillRow.implicitWidth + 20
-                height: pillRow.implicitHeight + 10
-                Row {
-                    id: pillRow
-                    anchors.centerIn: parent
-                    spacing: 4
-                    Icon { text: "lock"; size: 22; color: root.cOnSecondaryContainer }
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: root.statusText
-                        color: root.cOnSecondaryContainer
-                        font.family: root.uiFont
-                        font.pixelSize: 17
+
+            Item {
+                anchors.horizontalCenter: parent.horizontalCenter
+                opacity: (root.statusText.length > 0 && !root.unlocking) ? 1 : 0
+                visible: opacity > 0
+                Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.BezierSpline; easing.bezierCurve: root.curveEffects } }
+                width: pill.width
+                height: pill.height
+                RectangularShadow {
+                    anchors.fill: pill
+                    radius: pill.radius
+                    blur: 14
+                    offset: Qt.vector2d(0, 1)
+                    spread: 1
+                    color: "#4d000000"
+                    z: -1
+                }
+                Rectangle {
+                    id: pill
+                    color: root.cSecondaryContainer
+                    radius: 10
+                    width: pillRow.implicitWidth + 20
+                    height: pillRow.implicitHeight + 10
+                    Row {
+                        id: pillRow
+                        anchors.centerIn: parent
+                        spacing: 4
+                        Icon { text: "lock"; size: 22; color: root.cOnSecondaryContainer }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: root.statusText
+                            color: root.cOnSecondaryContainer
+                            font.family: root.uiFont
+                            font.pixelSize: 17
+                        }
                     }
                 }
             }
@@ -266,16 +293,7 @@ Item {
             shake.restart()
             password.forceActiveFocus()
         }
-        function onLoginSucceeded() { fadeOut.start() }
-    }
-
-    Rectangle {
-        id: curtain
-        anchors.fill: parent
-        color: "black"
-        opacity: 0
-        z: 100
-        NumberAnimation on opacity { id: fadeOut; running: false; to: 1; duration: 300 }
+        function onLoginSucceeded() { root.unlocking = true }
     }
 
     // ---- islands ----------------------------------------------------------------------
@@ -290,13 +308,14 @@ Item {
         property real appear: 0.9
         scale: appear * Math.min(1, (root.width - 24) / width)
         transformOrigin: Item.Bottom
-        opacity: 0
+        property bool shown: false
+        opacity: (shown && !root.unlocking) ? 1 : 0
         Component.onCompleted: {
-            appear = 1; opacity = 1; password.forceActiveFocus()
+            appear = 1; shown = true; password.forceActiveFocus()
             if (config.previewText) password.text = config.previewText   // preview/testing only
         }
         Behavior on appear { NumberAnimation { duration: 350; easing.type: Easing.OutCubic } }
-        Behavior on opacity { NumberAnimation { duration: 250 } }
+        Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.BezierSpline; easing.bezierCurve: root.curveEffects } }
 
         // left: user, keyboard layout, session
         Island {
@@ -454,9 +473,16 @@ Item {
     // Preview helper: with previewShot=/path.png in theme.conf the theme saves a screenshot
     // of itself and quits (used to render the theme headlessly; ignored otherwise).
     Timer {
-        interval: 3500
+        interval: parseInt(config.previewShotAt || "3500")
         running: (config.previewShot || "") !== ""
         onTriggered: root.grabToImage(function (r) { r.saveToFile(config.previewShot); Qt.quit() })
+    }
+
+    // previewUnlockAt=ms: run the unlock transition without a real login (test mode never succeeds)
+    Timer {
+        interval: parseInt(config.previewUnlockAt || "0")
+        running: (config.previewUnlockAt || "") !== ""
+        onTriggered: root.unlocking = true
     }
 
     // Click anywhere to focus the password field again

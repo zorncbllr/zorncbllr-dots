@@ -72,7 +72,8 @@ move or delete it, the desktop configs break. If you move it, run `./install.sh`
 blurred, zoomed wallpaper, the centred cookie clock (dial, time numbers, hands, day and
 month bubbles) with the "Locked" pill, and the same pill-shaped islands (user / layout /
 session, password field, battery / sleep / reboot / power). Typed characters appear as Material shapes
-like on the lock screen. It is a port of the real components, using the bundled
+like on the lock screen, and a correct password plays the same unlock animation (blur drops,
+wallpaper zooms back, the clock glides to its desktop position, islands fade out). It is a port of the real components, using the bundled
 rounded-polygon library. `./install.sh` installs it automatically when SDDM is present; or
 run it on its own:
 
@@ -83,7 +84,9 @@ run it on its own:
 ```
 Re-run it after changing the wallpaper or colour scheme to refresh the login screen. The
 installer copies the wallpaper and Google Sans Flex into the theme because the `sddm` user
-cannot read your home directory. Options live in `sddm/zorncbllr-lock/theme.conf`
+cannot read your home directory. The installer also reads your clock position, side count and time format from
+`~/.config/illogical-impulse/config.json`, so the animation ends where your clock really is.
+Options live in `sddm/zorncbllr-lock/theme.conf`
 (`statusText=` hides the "Locked" pill, `cookieSides`, `blur`, `zoom`, `dim`). Without GPU
 effects (software rendering) the theme falls back to an un-blurred wallpaper and no shadows.
 The battery indicator reads `/sys/class/power_supply`; the installer enables that for the greeter
