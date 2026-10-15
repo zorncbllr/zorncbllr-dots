@@ -4,7 +4,8 @@
 #   sudo ./tests/fresh-arch.sh [--keep]
 #
 # Needs: root, systemd-nspawn, bsdtar, zstd, curl, ~10 GB free in /var/lib/machines.
-# Output is also written to $LOG (default /tmp/dots-fresh-test.log).
+# Output is also written to $LOG (default /tmp/dots-fresh-test.log); full tool output
+# (pacman, gpg, curl, compiler) goes to $LOG.detail so the terminal stays readable.
 # --keep leaves the container in place for poking around:
 #   sudo systemd-nspawn -D /var/lib/machines/dots-test -u tester
 set -euo pipefail
@@ -15,6 +16,8 @@ M="${MACHINE_DIR:-/var/lib/machines/dots-test}"
 NAME=dots-test
 LOG="${LOG:-/tmp/dots-fresh-test.log}"
 KEEP=false; [[ ${1:-} == --keep ]] && KEEP=true
+DETAIL="$LOG.detail"          # noisy tool output (pacman, gpg, curl) goes here
+: > "$DETAIL"
 exec > >(tee "$LOG") 2>&1
 
 PASS=0 FAIL=0
@@ -41,8 +44,8 @@ if [[ ! -d $M/usr ]]; then
   mkdir -p "$M"; tmp=$(mktemp -d); got=false
   for mirror in "${MIRRORS[@]}"; do
     echo "trying $mirror"
-    if curl -fL --retry 5 --retry-delay 3 --retry-all-errors -o "$tmp/b.tar.zst" "$mirror/iso/latest/archlinux-bootstrap-x86_64.tar.zst" &&
-       curl -fL --retry 5 --retry-delay 3 --retry-all-errors -o "$tmp/sums" "$mirror/iso/latest/sha256sums.txt" &&
+    if curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o "$tmp/b.tar.zst" "$mirror/iso/latest/archlinux-bootstrap-x86_64.tar.zst" &&
+       curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o "$tmp/sums" "$mirror/iso/latest/sha256sums.txt" &&
        awk '$2=="archlinux-bootstrap-x86_64.tar.zst"{print $1"  b.tar.zst"}' "$tmp/sums" > "$tmp/sum" &&
        (cd "$tmp" && sha256sum -c sum); then got=true; break; fi
   done
@@ -59,8 +62,10 @@ rm -f "$M/etc/resolv.conf"
 
 step "base system + test user"
 retry() { local i; for i in 1 2 3 4; do "$@" && return 0; echo "attempt $i failed: $*; retrying in $((i*10))s" >&2; sleep $((i*10)); done; return 1; }
-retry nsp bash -c 'pacman-key --init && pacman-key --populate archlinux &&
-  pacman -Syu --noconfirm --needed base-devel git sudo'
+retry nsp bash -c 'pacman-key --init &&
+  echo no-secmem-warning >> /etc/pacman.d/gnupg/gpg.conf &&   # containers cannot mlock: silence gpg
+  pacman-key --populate archlinux &&
+  pacman -Syu --noconfirm --needed base-devel git sudo' >>"$DETAIL" 2>&1
 nsp bash -c '{ id tester >/dev/null 2>&1 || useradd -m -G wheel tester; } &&
   echo "%wheel ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/wheel'
 rm -rf "$M/home/tester/zorncbllr-dots"
@@ -68,7 +73,11 @@ cp -a "$REPO" "$M/home/tester/zorncbllr-dots"
 nsp chown -R tester:tester /home/tester/zorncbllr-dots
 
 step "phase 1: ./install.sh --no-system --no-chsh (packages, builds, venv, links)"
-as_user './install.sh --no-system --no-chsh'
+as_user './install.sh --no-system --no-chsh' || {
+  echo "--- install.sh failed; end of its log:"
+  as_user 'tail -n 40 ~/.local/state/zorncbllr-dots/install.log' || true
+  exit 1
+}
 
 step "phase 1 checks"
 check "yay installed"                      as_user 'command -v yay'

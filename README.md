@@ -42,6 +42,7 @@ move or delete it, the desktop configs break. If you move it, run `./install.sh`
 | `--no-deps` | skip package installation and the python venv |
 | `--no-system` | skip groups, kernel module and services (needs sudo) |
 | `--no-chsh` | keep your current login shell |
+| `--verbose` | show all tool output (default: concise steps; details in `~/.local/state/zorncbllr-dots/install.log`) |
 | `<pkg> ...` | only link these stow packages, e.g. `./install.sh zsh kitty` |
 
 ### What it does

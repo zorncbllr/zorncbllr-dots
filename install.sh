@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # zorncbllr-dots installer — Arch Linux only. Symlinks configs with GNU stow.
 #
-#   ./install.sh [--dry-run] [--no-deps] [--no-system] [--no-chsh] [pkg ...]
+#   ./install.sh [--dry-run] [--no-deps] [--no-system] [--no-chsh] [--verbose] [pkg ...]
 #
 #   --dry-run    show what would be linked (stow -n); change nothing
 #   --no-deps    skip installing packages (yay) and python venv
 #   --no-system  skip groups / services / modules (needs sudo)
 #   --no-chsh    don't change the login shell to zsh
+#   --verbose    show all tool output (default: a log in ~/.local/state/zorncbllr-dots/install.log)
 #   pkg ...      only link these stow packages (default: all in ./stow)
 set -euo pipefail
 
@@ -16,7 +17,7 @@ TARGET="${HOME}"
 STATE="${XDG_STATE_HOME:-$HOME/.local/state}"
 BACKUP="$HOME/.dotfiles-backup-$(date +%Y%m%d-%H%M%S)"
 
-DRY=false DEPS=true SYSTEM=true CHSH=true
+DRY=false DEPS=true SYSTEM=true CHSH=true VERBOSE=false
 PKGS=()
 for a in "$@"; do
   case $a in
@@ -24,7 +25,8 @@ for a in "$@"; do
     --no-deps) DEPS=false ;;
     --no-system) SYSTEM=false ;;
     --no-chsh) CHSH=false ;;
-    -h|--help) sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --verbose) VERBOSE=true ;;
+    -h|--help) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*) echo "unknown option: $a" >&2; exit 2 ;;
     *) PKGS+=("$a") ;;
   esac
@@ -33,6 +35,23 @@ done
 log()  { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m==> warning:\033[0m %s\n' "$*" >&2; }
 die()  { printf '\033[1;31m==> error:\033[0m %s\n' "$*" >&2; exit 1; }
+
+# Noisy tools (pacman, yay, makepkg, uv: progress bars, compiler warnings, gpg
+# chatter) write to a log; the terminal gets one line per step. On failure the
+# log tail is shown. --verbose prints everything instead.
+LOGFILE="$STATE/zorncbllr-dots/install.log"
+quiet() { # quiet "what" cmd...
+  local what=$1; shift
+  if $VERBOSE; then log "$what"; "$@"; return; fi
+  mkdir -p "$(dirname "$LOGFILE")"
+  printf '\n### %s\n$ %s\n' "$what" "$*" >>"$LOGFILE"
+  log "$what ..."
+  "$@" >>"$LOGFILE" 2>&1 || { warn "$what failed (details: $LOGFILE)"; return 1; }
+}
+die_log() { # die, but first show the end of the log
+  [[ -f $LOGFILE ]] && ! $VERBOSE && { echo "--- last lines of $LOGFILE:" >&2; tail -n 20 "$LOGFILE" | sed 's/^/    /' >&2; }
+  die "$@"
+}
 
 [[ $EUID -ne 0 ]] || die "run as your normal user, not root"
 command -v pacman >/dev/null || die "this installer only supports Arch Linux"
@@ -74,18 +93,16 @@ install_yay() {
 
 ensure_yay() {
   command -v yay >/dev/null && return
-  log "installing yay"
-  retry sudo pacman -S --needed --noconfirm base-devel git || die "could not install base-devel/git"
-  retry install_yay || die "could not install yay"
+  retry quiet "installing base-devel and git" sudo pacman -S --needed --noconfirm base-devel git || die_log "could not install base-devel/git"
+  retry quiet "installing yay (AUR helper)" install_yay || die_log "could not install yay"
 }
 
 build_local_pkg() { # PKGBUILDs shipped in sdata/dist-arch that aren't in the AUR
   local dir=$1 tmp rc
   pacman -Qq "${dir##*/}" >/dev/null 2>&1 && return
-  log "building ${dir##*/}"
   tmp=$(mktemp -d)                  # build in a copy: keep src/ and pkg/ out of the repo
   cp -r "$dir/." "$tmp/"
-  (cd "$tmp" && retry makepkg -si --noconfirm)
+  (cd "$tmp" && retry quiet "building ${dir##*/} (compiles; can take a few minutes)" makepkg -si --noconfirm)
   rc=$?; rm -rf "$tmp"; return $rc
 }
 
@@ -96,8 +113,9 @@ install_missing() {
   # e.g. an installed quickshell-git is not replaced by the repo's quickshell.
   mapfile -t missing < <(pacman -T "${all[@]}" || true)
   if (( ${#missing[@]} )); then
-    log "installing ${#missing[@]} missing package(s): ${missing[*]}"
-    yay -S "${YAY_FLAGS[@]}" "${missing[@]}"
+    mkdir -p "$(dirname "$LOGFILE")"; printf '\n### missing packages\n%s\n' "${missing[*]}" >>"$LOGFILE"
+    quiet "installing ${#missing[@]} missing package(s) with yay (AUR packages are built; can take a while)" \
+      yay -S "${YAY_FLAGS[@]}" "${missing[@]}"
   else
     log "all ${#all[@]} packages already satisfied"
   fi
@@ -107,21 +125,21 @@ setup_venv() {
   local venv="$STATE/quickshell/.venv"
   # A directory alone proves nothing (an interrupted run leaves one): check for python.
   if [[ ! -x $venv/bin/python ]]; then
-    log "creating python venv ($venv)"
     mkdir -p "$venv"
-    uv venv --prompt .venv "$venv" -p 3.12 || return 1
+    quiet "creating python venv ($venv)" uv venv --prompt .venv "$venv" -p 3.12 || return 1
   fi
-  VIRTUAL_ENV="$venv" uv pip install -r "$REPO/sdata/uv/requirements.txt"   # no-op when satisfied
+  # no-op when already satisfied
+  quiet "installing python requirements" env VIRTUAL_ENV="$venv" uv pip install -r "$REPO/sdata/uv/requirements.txt"
 }
 
 install_deps() {
   check_network
   ensure_yay
-  retry install_missing || die "package installation failed; re-run ./install.sh (it resumes)"
+  retry install_missing || die_log "package installation failed; re-run ./install.sh (it resumes)"
   for d in "$REPO"/sdata/dist-arch/illogical-impulse-{microtex-git,bibata-modern-classic-bin}; do
-    [[ -f $d/PKGBUILD ]] && { build_local_pkg "$d" || die "failed to build ${d##*/}; re-run ./install.sh"; }
+    [[ -f $d/PKGBUILD ]] && { build_local_pkg "$d" || die_log "failed to build ${d##*/}; re-run ./install.sh"; }
   done
-  retry setup_venv || die "python venv setup failed; re-run ./install.sh"
+  retry setup_venv || die_log "python venv setup failed; re-run ./install.sh"
 }
 
 setup_system() {
@@ -130,8 +148,11 @@ setup_system() {
   sudo usermod -aG video,i2c,input "$USER"
   echo i2c-dev | sudo tee /etc/modules-load.d/i2c-dev.conf >/dev/null
   if [[ -d /run/systemd/system ]]; then
-    sudo systemctl enable --now bluetooth || warn "could not enable bluetooth"
-    systemctl --user enable --now ydotool 2>/dev/null || warn "ydotool user service not enabled (log in graphically and re-run)"
+    quiet "enabling bluetooth" sudo systemctl enable --now bluetooth || warn "could not enable bluetooth"
+    # The user service needs a login session (XDG_RUNTIME_DIR); not an error without one.
+    if [[ -z ${XDG_RUNTIME_DIR:-} ]] || ! systemctl --user enable --now ydotool >/dev/null 2>&1; then
+      log "ydotool: no user session here; after logging in run: systemctl --user enable --now ydotool"
+    fi
   fi
 }
 
@@ -202,6 +223,6 @@ if $CHSH && [[ $(basename "$(getent passwd "$USER" | cut -d: -f7)") != zsh ]]; t
   log "changing login shell to zsh"
   chsh -s "$(command -v zsh)"
 fi
-command -v pkgfile >/dev/null && { log "building pkgfile database"; sudo pkgfile -u || true; }
+command -v pkgfile >/dev/null && { quiet "building pkgfile database" sudo pkgfile -u || warn "pkgfile database not built; run: sudo pkgfile -u"; }
 
 log "done. Log out and back in (groups, shell, env). Backups, if any: $BACKUP"
