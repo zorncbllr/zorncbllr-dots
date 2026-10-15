@@ -12,17 +12,6 @@ Repository: <https://github.com/zorncbllr/zorncbllr-dots>
 |---|---|
 | ![AI sidebar and settings](docs/screenshots/sidebar-settings.png) | ![Settings with fastfetch and cava](docs/screenshots/settings.png) |
 
-> **Status** (checked 2026-10-15):
-> - **Verified from scratch in a fresh Arch container** with the current installer
->   (`tests/fresh-arch.sh`, one uninterrupted run, 16/16 checks, about 11 minutes): yay
->   bootstrap, ~106 packages, the MicroTeX and cursor-theme builds, the python venv, linking,
->   an idempotent second run, and the system step (groups, `i2c-dev`, `bluetooth`).
-> - **Also checked on every change, from a fresh clone:** linking, backups, the seeded
->   default settings, uninstall, and building the SDDM theme.
-> - **Not verified:** a graphical session on real hardware other than the author's, and the
->   SDDM theme during a real login (the container has no SDDM, and SDDM's test mode cannot
->   authenticate, so it was only rendered and animated in preview).
-
 ## Install
 
 Arch Linux only. Run as your normal user (it uses `sudo` where needed).
