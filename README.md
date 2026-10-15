@@ -8,9 +8,13 @@ Repository: <https://github.com/zorncbllr/zorncbllr-dots>
 
 ![Desktop: bar, media card, clock, fastfetch and cava widgets](docs/screenshots/desktop.png)
 
-| | |
+| AI sidebar and settings | Settings, fastfetch and cava widgets |
 |---|---|
 | ![AI sidebar and settings](docs/screenshots/sidebar-settings.png) | ![Settings with fastfetch and cava](docs/screenshots/settings.png) |
+
+| Quick settings, calendar and widgets | SDDM login screen |
+|---|---|
+| ![Quick settings, calendar and widgets](docs/screenshots/overview.png) | ![SDDM login screen](docs/screenshots/login.png) |
 
 ## Install
 
