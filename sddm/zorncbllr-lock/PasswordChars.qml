@@ -11,6 +11,18 @@ Flickable {
     property color settledColor: "#c6c6c6"
     property int charSize: 20
 
+    // A real model: changing an integer Repeater model would destroy and recreate *every*
+    // delegate on each keystroke (all shapes re-animating = flicker). Here only the last one
+    // is added or removed.
+    ListModel { id: charModel }
+    function syncModel() {
+        while (charModel.count < root.length) charModel.append({})
+        while (charModel.count > root.length) charModel.remove(charModel.count - 1)
+    }
+    property int created: 0          // delegates created so far (diagnostic: must equal keystrokes)
+    onLengthChanged: syncModel()
+    Component.onCompleted: syncModel()
+
     clip: true
     interactive: false
     contentWidth: dotsRow.implicitWidth
@@ -33,12 +45,13 @@ Flickable {
         spacing: 0
 
         Repeater {
-            model: root.length
+            model: charModel
             delegate: Item {
                 id: charItem
                 required property int index
                 implicitWidth: root.charSize
                 implicitHeight: root.charSize
+                Component.onCompleted: root.created++
 
                 MaterialShape {
                     id: materialShape

@@ -152,7 +152,7 @@ Item {
                     id: pillRow
                     anchors.centerIn: parent
                     spacing: 4
-                    Icon { text: "lock"; size: 24; color: root.cOnSecondaryContainer }
+                    Icon { text: "lock"; size: 22; color: root.cOnSecondaryContainer }
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         text: root.statusText
@@ -190,12 +190,17 @@ Item {
     }
 
     // ---- reusable pieces --------------------------------------------------------------
+    // Same as quickshell's MaterialSymbol: optical size = icon size, heavier weight when filled.
     component Icon: Text {
         property real size: 22
+        property real fill: 0
         color: root.cOnLayer
+        renderType: Text.NativeRendering
         font.family: root.iconFont
         font.pixelSize: size
-        font.variableAxes: ({ "FILL": 1 })
+        font.hintingPreference: Font.PreferNoHinting
+        font.weight: fill > 0.5 ? Font.DemiBold : Font.Normal
+        font.variableAxes: ({ "FILL": fill, "opsz": size })
         verticalAlignment: Text.AlignVCenter
     }
 
@@ -236,7 +241,7 @@ Item {
         Icon {
             anchors.centerIn: parent
             text: ib.icon
-            size: 24
+            size: ib.toggled ? 24 : 22
             color: ib.toggled ? root.cOnPrimary : root.cOnLayer
         }
         HoverHandler { id: hover; cursorShape: Qt.PointingHandCursor }
@@ -298,11 +303,12 @@ Item {
             id: leftIsland
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 14
-            Item { Layout.preferredWidth: 4 }
+            spacing: 0
             RowLayout {
-                spacing: 6
-                Icon { text: "account_circle"; size: 24 }
+                Layout.leftMargin: 8
+                Layout.rightMargin: 10
+                spacing: 4
+                Icon { text: "account_circle"; size: 22; fill: 1 }
                 Text {
                     text: root.curUser ? root.curUser.shownName : ""
                     color: root.cOnLayer
@@ -315,8 +321,10 @@ Item {
                 }
             }
             RowLayout {
-                spacing: 6
-                Icon { text: "keyboard_alt"; size: 24 }
+                Layout.leftMargin: 10
+                Layout.rightMargin: 10
+                spacing: 4
+                Icon { text: "keyboard_alt"; size: 22; fill: 1 }
                 Text {
                     text: keyboard.layouts.length > 0 ? keyboard.layouts[keyboard.currentLayout].shortName : ""
                     color: root.cOnLayer
@@ -329,8 +337,10 @@ Item {
                 }
             }
             RowLayout {
-                spacing: 6
-                Icon { text: "desktop_windows"; size: 24 }
+                Layout.leftMargin: 10
+                Layout.rightMargin: 8
+                spacing: 4
+                Icon { text: "desktop_windows"; size: 22; fill: 1 }
                 Text {
                     text: root.curSession ? root.curSession.sName : ""
                     color: root.cOnLayer
@@ -342,7 +352,6 @@ Item {
                     onTapped: root.sessionIndex = (root.sessionIndex + 1) % sessionRepeater.count
                 }
             }
-            Item { Layout.preferredWidth: 4 }
         }
 
         // middle: password pill (shape characters) + confirm
@@ -426,7 +435,7 @@ Item {
                 Layout.rightMargin: 10
                 spacing: 4
                 readonly property color tint: (root.batteryPercent <= 20 && !root.batteryCharging) ? root.cError : root.cOnLayer
-                Icon { text: root.batteryCharging ? "bolt" : "battery_android_full"; size: 24; color: parent.tint }
+                Icon { text: root.batteryCharging ? "bolt" : "battery_android_full"; size: 22; fill: 1; color: parent.tint }
                 Text {
                     text: root.batteryPercent
                     color: parent.tint
