@@ -24,7 +24,7 @@ check() { # check "description" command...
   if "$@" >/dev/null 2>&1; then printf '  PASS  %s\n' "$d"; PASS=$((PASS+1))
   else printf '  FAIL  %s\n' "$d"; FAIL=$((FAIL+1)); fi
 }
-nsp()   { systemd-nspawn -q -D "$M" --machine="$NAME" "$@"; }
+nsp()   { systemd-nspawn -q --resolv-conf=off -D "$M" --machine="$NAME" "$@"; }
 as_user() { nsp -u tester --chdir=/home/tester/zorncbllr-dots bash -c "$*"; }
 
 cleanup() {
@@ -52,6 +52,10 @@ if [[ ! -d $M/usr ]]; then
 fi
 # Reuse the host's mirrorlist: those mirrors are known to work from this network.
 cp /etc/pacman.d/mirrorlist "$M/etc/pacman.d/mirrorlist"
+# Router resolvers drop lookups under load (many parallel downloads): keep the host's
+# first, then public fallbacks, so a flaky LAN resolver does not fail the test.
+rm -f "$M/etc/resolv.conf"
+{ grep -m2 '^nameserver' /etc/resolv.conf; echo "nameserver 1.1.1.1"; echo "nameserver 9.9.9.9"; } > "$M/etc/resolv.conf"
 
 step "base system + test user"
 nsp bash -c 'pacman-key --init && pacman-key --populate archlinux &&
@@ -83,7 +87,7 @@ check "second run installs nothing"        grep -q 'already satisfied' /tmp/seco
 check "second run backs up nothing"        bash -c '! grep -q "backing up" /tmp/second-run.txt'
 
 step "phase 3: boot the container, run the system step"
-systemd-nspawn -q -b -D "$M" --machine="$NAME" >/dev/null 2>&1 &
+systemd-nspawn -q -b --resolv-conf=off -D "$M" --machine="$NAME" >/dev/null 2>&1 &
 for _ in $(seq 60); do machinectl show "$NAME" >/dev/null 2>&1 && break; sleep 1; done
 sleep 8
 systemd-run -q -M "$NAME" --wait --pipe -p User=tester -p WorkingDirectory=/home/tester/zorncbllr-dots \
