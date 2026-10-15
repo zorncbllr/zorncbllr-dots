@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>zorncbllr-dots — an Arch Linux desktop with one design language</title>
   <meta name="description" content="Hyprland + quickshell desktop for Arch Linux with a matching zsh/kitty terminal and an SDDM login screen that mirrors the lock screen. One command installs everything.">
   <meta name="theme-color" content="#131313">
@@ -232,17 +232,18 @@ cd ~/zorncbllr-dots</code><button class="btn round" data-copy="git clone https:/
 
   <!-- dock (like the lock screen's islands): sections, install command, source -->
   <nav class="dock" aria-label="Quick links">
-    <div class="island hide-sm">
-      <a class="btn link" href="#features"><span class="icon fill">apps</span>Features</a>
-      <a class="btn link" href="#look"><span class="icon fill">image</span>Look</a>
-      <a class="btn link" href="#login"><span class="icon fill">lock</span>Login</a>
+    <div class="island dock-nav">
+      <a class="btn link" href="#features" aria-label="Features"><span class="icon fill">apps</span><span class="lbl">Features</span></a>
+      <a class="btn link" href="#look" aria-label="Look"><span class="icon fill">image</span><span class="lbl">Look</span></a>
+      <a class="btn link" href="#login" aria-label="Login screen"><span class="icon fill">lock</span><span class="lbl">Login</span></a>
+      <a class="btn link" href="#install" aria-label="Install"><span class="icon fill">download</span><span class="lbl">Install</span></a>
     </div>
     <div class="island dock-cmd">
       <code>./install.sh</code>
       <button class="btn round primary" data-copy="git clone https://github.com/zorncbllr/zorncbllr-dots && cd zorncbllr-dots && ./install.sh" aria-label="Copy the full install command"><span class="icon">content_copy</span></button>
     </div>
-    <div class="island hide-sm">
-      <a class="btn link" href="#install"><span class="icon">download</span>Install</a>
+    <div class="island dock-gh">
+      <a class="btn link" href="https://github.com/zorncbllr/zorncbllr-dots" aria-label="GitHub"><span class="icon">code</span><span class="lbl">GitHub</span></a>
     </div>
   </nav>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
