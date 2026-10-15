@@ -71,7 +71,7 @@ move or delete it, the desktop configs break. If you move it, run `./install.sh`
 `sddm/zorncbllr-lock` is an SDDM theme that reproduces the quickshell lock screen: the
 blurred, zoomed wallpaper, the centred cookie clock (dial, time numbers, hands, day and
 month bubbles) with the "Locked" pill, and the same pill-shaped islands (user / layout /
-session, password field, sleep / reboot / power). Typed characters appear as Material shapes
+session, password field, battery / sleep / reboot / power). Typed characters appear as Material shapes
 like on the lock screen. It is a port of the real components, using the bundled
 rounded-polygon library. `./install.sh` installs it automatically when SDDM is present; or
 run it on its own:
@@ -86,6 +86,9 @@ installer copies the wallpaper and Google Sans Flex into the theme because the `
 cannot read your home directory. Options live in `sddm/zorncbllr-lock/theme.conf`
 (`statusText=` hides the "Locked" pill, `cookieSides`, `blur`, `zoom`, `dim`). Without GPU
 effects (software rendering) the theme falls back to an un-blurred wallpaper and no shadows.
+The battery indicator reads `/sys/class/power_supply`; the installer enables that for the greeter
+with `GreeterEnvironment=QML_XHR_ALLOW_FILE_READ=1` in `/etc/sddm.conf.d/10-zorncbllr.conf`.
+The right-hand island hides itself when there is no battery and no power action to show.
 Since SDDM already asks for the password, the shell's own lock-on-startup is off by default.
 Needs `sddm`, `qt6-declarative`, `rsync`, and the Space Grotesk and Material Symbols fonts
 (all in `packages.txt` except `sddm` itself).

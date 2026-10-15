@@ -94,8 +94,9 @@ case $MODE in
     command -v sddm-greeter-qt6 >/dev/null || die "sddm-greeter-qt6 not found (install sddm)"
     tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
     assemble "$tmp" >/dev/null
+    printf 'showPowerAlways=true\n' >> "$tmp/theme.conf"   # test mode reports no power actions
     log "opening the greeter in test mode (close the window to quit)"
-    sddm-greeter-qt6 --test-mode --theme "$tmp"
+    QML_XHR_ALLOW_FILE_READ=1 sddm-greeter-qt6 --test-mode --theme "$tmp"
     ;;
   uninstall)
     log "removing the theme and SDDM config"
@@ -111,7 +112,8 @@ case $MODE in
     sudo cp -r "$tmp/." "$DEST/"
     sudo chmod -R a+rX "$DEST"
     sudo install -d /etc/sddm.conf.d
-    printf '[Theme]\nCurrent=zorncbllr-lock\nCursorTheme=Bibata-Modern-Classic\n' | sudo tee "$CONF" >/dev/null
+    # GreeterEnvironment lets the theme read /sys/class/power_supply (battery indicator)
+    printf '[Theme]\nCurrent=zorncbllr-lock\nCursorTheme=Bibata-Modern-Classic\n\n[General]\nGreeterEnvironment=QML_XHR_ALLOW_FILE_READ=1\n' | sudo tee "$CONF" >/dev/null
     log "done. The new login screen shows from the next logout/reboot."
     ;;
 esac

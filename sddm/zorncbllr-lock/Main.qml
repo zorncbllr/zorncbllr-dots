@@ -42,6 +42,32 @@ Item {
     // wallpaper is shown as-is (dimmed) and the shadows are skipped.
     readonly property bool fx: GraphicsInfo.api !== GraphicsInfo.Software
 
+    // ---- battery (read from sysfs; needs QML_XHR_ALLOW_FILE_READ=1, set by install-theme.sh) --
+    property int batteryPercent: -1
+    property bool batteryCharging: false
+    function readFile(path) {
+        try {
+            var x = new XMLHttpRequest()
+            x.open("GET", "file://" + path, false)
+            x.send()
+            return (x.status === 200 || x.status === 0) ? String(x.responseText).trim() : ""
+        } catch (e) { return "" }
+    }
+    function refreshBattery() {
+        var names = ["BAT0", "BAT1", "BATT", "CMB0"]
+        for (var i = 0; i < names.length; i++) {
+            var base = "/sys/class/power_supply/" + names[i]
+            var cap = readFile(base + "/capacity")
+            if (cap.length > 0 && !isNaN(parseInt(cap))) {
+                batteryPercent = parseInt(cap)
+                batteryCharging = readFile(base + "/status") === "Charging"
+                return
+            }
+        }
+        batteryPercent = -1
+    }
+    Timer { interval: 30000; running: true; repeat: true; triggeredOnStart: true; onTriggered: root.refreshBattery() }
+
     // ---- state ------------------------------------------------------------------------
     property bool failed: false
     property bool busy: false
@@ -253,7 +279,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 20
-        width: leftIsland.width + 10 + mainIsland.width + 10 + rightIsland.width
+        width: leftIsland.width + 10 + mainIsland.width + (rightIsland.visible ? 10 + rightIsland.width : 0)
         height: 56
         // shrink to fit narrow screens; 0.9 -> 1 is the appear animation
         property real appear: 0.9
@@ -392,6 +418,22 @@ Item {
             anchors.left: mainIsland.right
             anchors.leftMargin: 10
             anchors.verticalCenter: parent.verticalCenter
+            visible: root.batteryPercent >= 0 || root.showPower || sddm.canSuspend || sddm.canReboot || sddm.canPowerOff
+
+            RowLayout {
+                visible: root.batteryPercent >= 0
+                Layout.leftMargin: 10
+                Layout.rightMargin: 10
+                spacing: 4
+                readonly property color tint: (root.batteryPercent <= 20 && !root.batteryCharging) ? root.cError : root.cOnLayer
+                Icon { text: root.batteryCharging ? "bolt" : "battery_android_full"; size: 24; color: parent.tint }
+                Text {
+                    text: root.batteryPercent
+                    color: parent.tint
+                    font.family: root.uiFont
+                    font.pixelSize: 15
+                }
+            }
             IconButton { icon: "dark_mode"; visible: sddm.canSuspend || root.showPower; onClicked: sddm.suspend() }
             IconButton { icon: "restart_alt"; visible: sddm.canReboot || root.showPower; onClicked: sddm.reboot() }
             IconButton { icon: "power_settings_new"; visible: sddm.canPowerOff || root.showPower; onClicked: sddm.powerOff() }
