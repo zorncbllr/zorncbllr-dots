@@ -223,6 +223,8 @@ if $CHSH && [[ $(basename "$(getent passwd "$USER" | cut -d: -f7)") != zsh ]]; t
   log "changing login shell to zsh"
   chsh -s "$(command -v zsh)"
 fi
-command -v pkgfile >/dev/null && { quiet "building pkgfile database" sudo pkgfile -u || warn "pkgfile database not built; run: sudo pkgfile -u"; }
+if $SYSTEM && command -v pkgfile >/dev/null; then
+  quiet "building pkgfile database" sudo pkgfile -u || warn "pkgfile database not built; run: sudo pkgfile -u"
+fi
 
 log "done. Log out and back in (groups, shell, env). Backups, if any: $BACKUP"
