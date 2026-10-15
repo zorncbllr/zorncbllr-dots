@@ -117,7 +117,14 @@ systemd-run -q -M "$NAME" --wait --pipe -p User=tester --setenv=HOME=/home/teste
     rm -rf /tmp/sddm-t && cp -r /usr/share/sddm/themes/zorncbllr-lock /tmp/sddm-t &&
     printf "\nshowPowerAlways=true\npreviewText=abc\npreviewShot=/tmp/sddm-shot.png\n" >> /tmp/sddm-t/theme.conf &&
     timeout 60 sddm-greeter-qt6 --test-mode --theme /tmp/sddm-t >/tmp/sddm-greeter.log 2>&1; true' >/dev/null 2>&1 || true
-check "SDDM theme renders in a fresh container" test -s "$M/tmp/sddm-shot.png"
+# /tmp is a tmpfs inside the booted container, so look from inside it, not at $M/tmp
+in_container() { systemd-run -q -M "$NAME" --wait --pipe "$@"; }
+before=$FAIL
+check "SDDM theme renders in a fresh container" in_container test -s /tmp/sddm-shot.png
+if (( FAIL > before )); then
+  echo "  --- greeter log from inside the container:"
+  in_container bash -c 'tail -n 25 /tmp/sddm-greeter.log; ls -la /tmp/sddm-t 2>&1 | head -12' 2>&1 | sed 's/^/      /' || true
+fi
 
 step "result: $PASS passed, $FAIL failed (log: $LOG)"
 (( FAIL == 0 ))
