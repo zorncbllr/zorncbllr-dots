@@ -12,13 +12,17 @@ Repository: <https://github.com/zorncbllr/zorncbllr-dots>
 |---|---|
 | ![AI sidebar and settings](docs/screenshots/sidebar-settings.png) | ![Settings with fastfetch and cava](docs/screenshots/settings.png) |
 
-> **Status:** `./install.sh` has been run end to end in a fresh Arch Linux container
-> (`tests/fresh-arch.sh`, 16/16 checks): yay bootstrap, ~106 packages, the MicroTeX and
-> cursor-theme builds, the python venv, linking, an idempotent second run, and the
-> system step (groups, `i2c-dev`, `bluetooth`). It also recovered from a mid-install
-> network failure by simply re-running. Not covered: a graphical login on real hardware
-> (GPU drivers, multi-monitor, laptop quirks). Installing on a machine that already has
-> another Hyprland setup is covered by the backup logic, which is tested separately.
+> **Status** (checked 2026-10-15):
+> - **Verified on every change, from a fresh clone:** linking, backups, the idempotent second
+>   run, the seeded default settings, uninstall, and building the SDDM theme.
+> - **Verified once in a fresh Arch container** (`tests/fresh-arch.sh`, 16/16 checks): yay
+>   bootstrap, ~106 packages, the MicroTeX and cursor-theme builds, the python venv, the
+>   system step, and recovery from a mid-install network failure. That run predates the
+>   quiet-output mode, the config seed and the SDDM step, so **re-run it before trusting a
+>   clean-machine install.**
+> - **Not verified:** a graphical session on real hardware other than the author's, and the
+>   SDDM theme during a real login (it was rendered and animated in preview and headless
+>   test mode only; SDDM's test mode cannot authenticate).
 
 ## Install
 
