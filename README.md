@@ -38,6 +38,8 @@ move or delete it, the desktop configs break. If you move it, run `./install.sh`
 | `--no-deps` | skip package installation and the python venv |
 | `--no-system` | skip groups, kernel module, services and the login screen (needs sudo) |
 | `--no-sddm` | don't install the SDDM theme or enable SDDM |
+| `--sddm-only` | only (re)install the login screen (refresh after a wallpaper or colour change) |
+| `--sddm-preview` | open the login screen in a window; installs nothing, no root |
 | `--no-chsh` | keep your current login shell |
 | `--verbose` | show all tool output (default: concise steps; details in `~/.local/state/zorncbllr-dots/install.log`) |
 | `<pkg> ...` | only link these stow packages, e.g. `./install.sh zsh kitty` |
@@ -78,11 +80,12 @@ and enables SDDM. If another display manager is already enabled it is left alone
 the command to switch; `--no-sddm` skips all of this. To redo just the login screen:
 
 ```sh
-./sddm/install-theme.sh --preview   # try it in a window, installs nothing, no root
-./sddm/install-theme.sh             # install (sudo): current wallpaper, palette and fonts
-./sddm/install-theme.sh --uninstall
+./install.sh --sddm-only      # (re)install just the login screen, e.g. after a wallpaper change
+./install.sh --sddm-preview   # look at it in a window; installs nothing, no root
+./uninstall.sh --with-sddm    # remove the theme again (SDDM falls back to its default)
 ```
-Re-run it after changing the wallpaper or colour scheme to refresh the login screen. The
+Run `./install.sh --sddm-only` after changing the wallpaper or colour scheme to refresh the login
+screen. The
 installer copies the wallpaper and Google Sans Flex into the theme because the `sddm` user
 cannot read your home directory. The installer also reads your clock position, side count and time format from
 `~/.config/illogical-impulse/config.json`, so the animation ends where your clock really is.

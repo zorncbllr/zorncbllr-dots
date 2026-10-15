@@ -2,11 +2,14 @@
 # zorncbllr-dots installer — Arch Linux only. Symlinks configs with GNU stow.
 #
 #   ./install.sh [--dry-run] [--no-deps] [--no-system] [--no-sddm] [--no-chsh] [--verbose] [pkg ...]
+#   ./install.sh --sddm-only | --sddm-preview
 #
 #   --dry-run    show what would be linked (stow -n); change nothing
 #   --no-deps    skip installing packages (yay) and python venv
 #   --no-system  skip groups / services / modules / login screen (needs sudo)
 #   --no-sddm    don't install the SDDM login theme or enable SDDM
+#   --sddm-only  only (re)install the login screen: refreshes it after a wallpaper/colour change
+#   --sddm-preview  open the login screen in a window to look at it (no root, installs nothing)
 #   --no-chsh    don't change the login shell to zsh
 #   --verbose    show all tool output (default: a log in ~/.local/state/zorncbllr-dots/install.log)
 #   pkg ...      only link these stow packages (default: all in ./stow)
@@ -18,7 +21,7 @@ TARGET="${HOME}"
 STATE="${XDG_STATE_HOME:-$HOME/.local/state}"
 BACKUP="$HOME/.dotfiles-backup-$(date +%Y%m%d-%H%M%S)"
 
-DRY=false DEPS=true SYSTEM=true SDDM=true CHSH=true VERBOSE=false
+DRY=false DEPS=true SYSTEM=true SDDM=true CHSH=true VERBOSE=false SDDM_ONLY=false SDDM_PREVIEW=false
 PKGS=()
 for a in "$@"; do
   case $a in
@@ -26,9 +29,11 @@ for a in "$@"; do
     --no-deps) DEPS=false ;;
     --no-system) SYSTEM=false ;;
     --no-sddm) SDDM=false ;;
+    --sddm-only) SDDM_ONLY=true ;;
+    --sddm-preview) SDDM_PREVIEW=true ;;
     --no-chsh) CHSH=false ;;
     --verbose) VERBOSE=true ;;
-    -h|--help) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*) echo "unknown option: $a" >&2; exit 2 ;;
     *) PKGS+=("$a") ;;
   esac
@@ -168,7 +173,7 @@ setup_sddm() {
     return 0
   fi
   quiet "installing the SDDM login theme" "$REPO/sddm/install-theme.sh" ||
-    { warn "SDDM theme not installed; run ./sddm/install-theme.sh to retry"; return 0; }
+    { warn "SDDM theme not installed; retry with: ./install.sh --sddm-only"; return 0; }
   [[ -d /run/systemd/system ]] || { log "no systemd here: enable SDDM yourself (sudo systemctl enable sddm)"; return 0; }
 
   local current=""
@@ -231,6 +236,16 @@ report_conflicts() {
 }
 
 command -v stow >/dev/null || { $DEPS && { ensure_yay; sudo pacman -S --needed --noconfirm stow; } || die "stow is required"; }
+
+if $SDDM_PREVIEW; then
+  exec "$REPO/sddm/install-theme.sh" --preview
+fi
+if $SDDM_ONLY; then
+  # (re)install just the login screen; fetch sddm itself if it is missing
+  command -v sddm >/dev/null || retry quiet "installing sddm" sudo pacman -S --needed --noconfirm sddm || die_log "could not install sddm"
+  setup_sddm
+  exit 0
+fi
 
 if $DRY; then
   for p in "${PKGS[@]}"; do
