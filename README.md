@@ -4,6 +4,14 @@ An Arch Linux desktop: Hyprland (lua config) + quickshell UI, with a zsh / kitty
 starship / fastfetch terminal. Configs are installed as symlinks (GNU stow), so the
 files in `~/.config` *are* the files in this repo and edits are tracked by git.
 
+Repository: <https://github.com/zorncbllr/zorncbllr-dots>
+
+![Desktop: bar, media card, clock, fastfetch and cava widgets](docs/screenshots/desktop.png)
+
+| | |
+|---|---|
+| ![AI sidebar and settings](docs/screenshots/sidebar-settings.png) | ![Settings with fastfetch and cava](docs/screenshots/settings.png) |
+
 > **Status:** the linking, backup, dry-run and uninstall logic is tested. The full
 > first-time path (installing `yay`, building the local packages, the system setup
 > step) has not been run on a fresh machine yet. Try it in a VM first.
