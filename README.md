@@ -12,9 +12,13 @@ Repository: <https://github.com/zorncbllr/zorncbllr-dots>
 |---|---|
 | ![AI sidebar and settings](docs/screenshots/sidebar-settings.png) | ![Settings with fastfetch and cava](docs/screenshots/settings.png) |
 
-> **Status:** the linking, backup, dry-run and uninstall logic is tested. The full
-> first-time path (installing `yay`, building the local packages, the system setup
-> step) has not been run on a fresh machine yet. Try it in a VM first.
+> **Status:** `./install.sh` has been run end to end in a fresh Arch Linux container
+> (`tests/fresh-arch.sh`, 16/16 checks): yay bootstrap, ~106 packages, the MicroTeX and
+> cursor-theme builds, the python venv, linking, an idempotent second run, and the
+> system step (groups, `i2c-dev`, `bluetooth`). It also recovered from a mid-install
+> network failure by simply re-running. Not covered: a graphical login on real hardware
+> (GPU drivers, multi-monitor, laptop quirks). Installing on a machine that already has
+> another Hyprland setup is covered by the backup logic, which is tested separately.
 
 ## Install
 
@@ -54,6 +58,11 @@ move or delete it, the desktop configs break. If you move it, run `./install.sh`
    never linked and never overwritten.
 4. **System setup:** adds you to `video,i2c,input`, loads `i2c-dev`, enables
    `bluetooth` and the `ydotool` user service, builds the `pkgfile` database.
+
+### Testing
+`sudo ./tests/fresh-arch.sh` builds a throwaway Arch container with `systemd-nspawn`,
+runs the real installer as a normal user, boots the container for the system step, and
+prints a pass/fail list (needs ~10 GB free; add `--keep` to inspect the container).
 
 ### Uninstall
 ```sh
