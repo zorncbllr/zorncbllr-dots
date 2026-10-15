@@ -1,0 +1,34 @@
+{
+  "appearance": {
+    "palette": {
+      "type": "scheme-monochrome"
+    },
+    "transparency": {
+      "enable": true
+    }
+  },
+  "background": {
+    "widgets": {
+      "clock": {
+        "x": 235,
+        "y": 605
+      }
+    }
+  },
+  "cheatsheet": {
+    "superKey": "⌘"
+  },
+  "conflictKiller": {
+    "autoKillTrays": true
+  },
+  "lock": {
+    "launchOnStartup": true
+  },
+  "sounds": {
+    "battery": true,
+    "pomodoro": true
+  },
+  "time": {
+    "format": "h:mm ap"
+  }
+}

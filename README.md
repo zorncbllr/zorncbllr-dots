@@ -57,7 +57,14 @@ move or delete it, the desktop configs break. If you move it, run `./install.sh`
    `fuzzel/fuzzel_theme.ini`, `kdeglobals`) are rewritten whenever the wallpaper or theme
    changes. They are listed in each package's `.seed-files`: copied once as defaults,
    never linked and never overwritten.
-4. **System setup:** adds you to `video,i2c,input`, loads `i2c-dev`, enables
+4. **Default settings:** on a fresh install `~/.config/illogical-impulse/config.json` is
+   seeded once from `stow/quickshell/.config/illogical-impulse/config.json`: only the
+   values that differ from the shell's own defaults (Monochrome palette, transparency,
+   12-hour clock, `⌘` as the Super label, lock on startup, tray auto-kill, battery and
+   pomodoro sounds, clock widget position). An existing config is never touched, and the
+   shell is free to rewrite the file afterwards. The wallpaper path is not seeded: first
+   run applies `assets/images/default_wallpaper.png`.
+5. **System setup:** adds you to `video,i2c,input`, loads `i2c-dev`, enables
    `bluetooth` and the `ydotool` user service, builds the `pkgfile` database.
 
 ### Testing
