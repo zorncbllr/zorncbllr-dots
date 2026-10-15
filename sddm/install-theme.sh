@@ -6,6 +6,7 @@
 #   (default)          copy the theme to /usr/share/sddm/themes, write the SDDM config,
 #                      use the current quickshell palette and wallpaper (needs sudo)
 #   --wallpaper FILE   use this image instead of the current wallpaper
+#   --assemble DIR     build the complete theme into DIR (no root, nothing installed)
 #   --preview          open the theme in the SDDM greeter's test mode (no root, nothing installed)
 #   --uninstall        remove the theme and config (SDDM falls back to its default theme)
 #
@@ -17,7 +18,7 @@ SRC="$HERE/zorncbllr-lock"
 DEST=/usr/share/sddm/themes/zorncbllr-lock
 CONF=/etc/sddm.conf.d/10-zorncbllr.conf
 STATE="${XDG_STATE_HOME:-$HOME/.local/state}/quickshell/user/generated"
-WALL=""; MODE=install
+WALL=""; MODE=install; OUT=""
 
 log()  { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m==> warning:\033[0m %s\n' "$*" >&2; }
@@ -27,8 +28,9 @@ while (( $# )); do
   case $1 in
     --wallpaper) WALL=${2:-}; shift ;;
     --preview) MODE=preview ;;
+    --assemble) MODE=assemble; OUT=${2:-}; shift ;;
     --uninstall) MODE=uninstall ;;
-    -h|--help) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) die "unknown option: $1" ;;
   esac
   shift
@@ -50,20 +52,48 @@ render_conf() { # render_conf OUTFILE
   local colors="$STATE/colors.json"
   [[ -r $colors ]] && command -v jq >/dev/null || return 0
   local k v
-  for pair in surfaceContainer:surface_container surfaceContainerHigh:surface_container_high \
-              onSurface:on_surface onSurfaceVariant:on_surface_variant \
-              primary:primary onPrimary:on_primary error:error; do
+  for pair in surface:surface surfaceContainer:surface_container surfaceContainerHigh:surface_container_high \
+              onSurface:on_surface onSurfaceVariant:on_surface_variant outline:outline \
+              primary:primary onPrimary:on_primary primaryContainer:primary_container \
+              secondary:secondary secondaryContainer:secondary_container \
+              onSecondaryContainer:on_secondary_container tertiary:tertiary \
+              tertiaryContainer:tertiary_container onTertiaryContainer:on_tertiary_container \
+              error:error; do
     k=${pair%%:*}; v=$(jq -r --arg n "${pair##*:}" '.[$n] // empty' "$colors")
     [[ $v =~ ^#[0-9a-fA-F]{6,8}$ ]] && sed -i -E "s|^${k}=.*|${k}=${v}|" "$1"
   done
 }
 
+# --- assemble the complete theme in DIR: sources, palette, wallpaper, shapes lib, fonts ----
+SHAPES="$HERE/../stow/quickshell/.config/quickshell/ii/modules/common/widgets/shapes"
+GSF_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/fonts/illogical-impulse-google-sans-flex"
+assemble() { # assemble DIR
+  local out=$1 wall font
+  wall=$(pick_wallpaper); [[ -f $wall ]] || die "wallpaper not found: $wall"
+  [[ -d $SHAPES ]] || die "shapes library missing at $SHAPES"
+  cp -r "$SRC/." "$out/"
+  render_conf "$out/theme.conf"
+  cp "$wall" "$out/background.png"
+  # rounded-polygon library (Material shapes): everything except examples/VCS files
+  mkdir -p "$out/shapes"
+  rsync -a --exclude='.git*' --exclude='example*' --exclude='README.md' "$SHAPES/" "$out/shapes/"
+  # Google Sans Flex lives in the user's font dir, which the sddm user cannot read
+  font=$(ls "$GSF_DIR"/GoogleSansFlex*.ttf 2>/dev/null | head -1 || true)
+  mkdir -p "$out/fonts"
+  if [[ -n $font ]]; then cp "$font" "$out/fonts/GoogleSansFlex.ttf"; else warn "Google Sans Flex not found; using Rubik"; fi
+  echo "$wall"
+}
+
 case $MODE in
+  assemble)
+    [[ -n $OUT ]] || die "--assemble needs a directory"
+    mkdir -p "$OUT"; assemble "$OUT" >/dev/null
+    log "theme assembled in $OUT"
+    ;;
   preview)
     command -v sddm-greeter-qt6 >/dev/null || die "sddm-greeter-qt6 not found (install sddm)"
     tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
-    cp -r "$SRC/." "$tmp/"; render_conf "$tmp/theme.conf"
-    cp "$(pick_wallpaper)" "$tmp/background.png"
+    assemble "$tmp" >/dev/null
     log "opening the greeter in test mode (close the window to quit)"
     sddm-greeter-qt6 --test-mode --theme "$tmp"
     ;;
@@ -73,11 +103,10 @@ case $MODE in
     ;;
   install)
     command -v sddm >/dev/null || die "sddm is not installed"
-    wall=$(pick_wallpaper); [[ -f $wall ]] || die "wallpaper not found: $wall"
     tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
-    cp -r "$SRC/." "$tmp/"; render_conf "$tmp/theme.conf"
-    cp "$wall" "$tmp/background.png"
+    wall=$(assemble "$tmp")
     log "installing theme to $DEST (wallpaper: $wall)"
+    sudo rm -rf "$DEST"            # drop files from older versions
     sudo install -d "$DEST"
     sudo cp -r "$tmp/." "$DEST/"
     sudo chmod -R a+rX "$DEST"

@@ -1,5 +1,7 @@
-// Login screen styled after the quickshell lock screen (modules/ii/lock/LockSurface.qml):
-// blurred wallpaper, big clock, and three pill "islands" along the bottom.
+// Login screen styled after the quickshell lock screen (modules/ii/lock/LockSurface.qml and
+// the desktop background shown while locked): blurred + zoomed wallpaper, the centred cookie
+// clock with a "Locked" pill, and three pill "islands" along the bottom. Typed characters
+// are drawn as Material shapes, like the lock screen's materialShapeChars.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Effects
@@ -11,15 +13,34 @@ Item {
     height: 1080
 
     // ---- palette / fonts (theme.conf) -------------------------------------------------
+    readonly property color cSurface: config.surface || "#131313"
     readonly property color cIsland: config.surfaceContainer || "#1f1f1f"
     readonly property color cIslandHigh: config.surfaceContainerHigh || "#2a2a2a"
     readonly property color cText: config.onSurface || "#e2e2e2"
-    readonly property color cSubtext: config.onSurfaceVariant || "#c6c6c6"
+    readonly property color cOnLayer: config.onSurfaceVariant || "#c6c6c6"
+    readonly property color cSubtext: config.outline || "#919191"
     readonly property color cPrimary: config.primary || "#ffffff"
     readonly property color cOnPrimary: config.onPrimary || "#1b1b1b"
     readonly property color cError: config.error || "#ffb4ab"
-    readonly property string uiFont: config.font || "Rubik"
+    readonly property color cPrimaryContainer: config.primaryContainer || "#d4d4d4"
+    readonly property color cSecondary: config.secondary || "#c6c6c6"
+    readonly property color cSecondaryContainer: config.secondaryContainer || "#474747"
+    readonly property color cOnSecondaryContainer: config.onSecondaryContainer || "#e2e2e2"
+    readonly property color cTertiary: config.tertiary || "#e2e2e2"
+    readonly property color cTertiaryContainer: config.tertiaryContainer || "#919191"
+    readonly property color cOnTertiaryContainer: config.onTertiaryContainer || "#000000"
     readonly property string iconFont: config.iconFont || "Material Symbols Rounded"
+    readonly property string expressiveFont: config.fontExpressive || "Space Grotesk"
+    // Google Sans Flex ships in the user's font dir, which the sddm user cannot read:
+    // install-theme.sh copies it into ./fonts. Falls back to Rubik.
+    readonly property string uiFont: gsf.status === FontLoader.Ready ? gsf.name : (config.font || "Rubik")
+    readonly property string statusText: config.statusText === undefined ? "Locked" : config.statusText
+
+    FontLoader { id: gsf; source: Qt.resolvedUrl("fonts/GoogleSansFlex.ttf") }
+
+    // Blur/shadows are shader effects: unavailable with software rendering, then the
+    // wallpaper is shown as-is (dimmed) and the shadows are skipped.
+    readonly property bool fx: GraphicsInfo.api !== GraphicsInfo.Software
 
     // ---- state ------------------------------------------------------------------------
     property bool failed: false
@@ -31,8 +52,8 @@ Item {
         onTriggered: root.now = new Date()
     }
 
-    // ---- background -------------------------------------------------------------------
-    Rectangle { anchors.fill: parent; color: "#131313" }
+    // ---- background: wallpaper, Gaussian-style blur, 1.1x zoom, 30% surface overlay ----
+    Rectangle { anchors.fill: parent; color: root.cSurface }
 
     Image {
         id: wallpaper
@@ -40,12 +61,13 @@ Item {
         source: config.background || "background.png"
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
-        visible: false
+        visible: !root.fx
     }
     MultiEffect {
         anchors.fill: parent
         source: wallpaper
-        visible: wallpaper.status === Image.Ready
+        visible: root.fx && wallpaper.status === Image.Ready
+        scale: parseFloat(config.zoom || "1.1")
         autoPaddingEnabled: false
         blurEnabled: true
         blurMax: 64
@@ -53,31 +75,67 @@ Item {
     }
     Rectangle {
         anchors.fill: parent
-        color: "black"
+        color: root.cSurface
         opacity: parseFloat(config.dim || "0.30")
     }
 
-    // ---- clock ------------------------------------------------------------------------
+    // ---- centred cookie clock + "Locked" pill -----------------------------------------
     Column {
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.verticalCenterOffset: -root.height * 0.10
-        spacing: 4
+        id: centerBlock
+        anchors.centerIn: parent
+        spacing: 10
+        scale: Math.min(1, root.height / 640)
 
-        Text {
+        CookieClock {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: Qt.formatTime(root.now, config.timeFormat || "h:mm ap")
-            color: root.cText
-            font.family: root.uiFont
-            font.pixelSize: Math.round(root.height * 0.14)
-            font.weight: Font.Medium
+            now: root.now
+            timeFormat: config.timeFormat || "h:mm ap"
+            fontExpressive: root.expressiveFont
+            sides: parseInt(config.cookieSides || "14")
+            cPrimary: root.cPrimary
+            cPrimaryContainer: root.cPrimaryContainer
+            cSecondary: root.cSecondary
+            cSecondaryContainer: root.cSecondaryContainer
+            cOnSecondaryContainer: root.cOnSecondaryContainer
+            cTertiary: root.cTertiary
+            cTertiaryContainer: root.cTertiaryContainer
+            cOnTertiaryContainer: root.cOnTertiaryContainer
         }
-        Text {
+
+        Item {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: Qt.formatDate(root.now, config.dateFormat || "dddd, d MMMM")
-            color: root.cSubtext
-            font.family: root.uiFont
-            font.pixelSize: Math.round(root.height * 0.032)
+            visible: root.statusText.length > 0
+            width: pill.width
+            height: pill.height
+            RectangularShadow {
+                anchors.fill: pill
+                radius: pill.radius
+                blur: 14
+                offset: Qt.vector2d(0, 1)
+                spread: 1
+                color: "#4d000000"
+                z: -1
+            }
+            Rectangle {
+                id: pill
+                color: root.cSecondaryContainer
+                radius: 10
+                width: pillRow.implicitWidth + 20
+                height: pillRow.implicitHeight + 10
+                Row {
+                    id: pillRow
+                    anchors.centerIn: parent
+                    spacing: 4
+                    Icon { text: "lock"; size: 24; color: root.cOnSecondaryContainer }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: root.statusText
+                        color: root.cOnSecondaryContainer
+                        font.family: root.uiFont
+                        font.pixelSize: 17
+                    }
+                }
+            }
         }
     }
 
@@ -108,7 +166,7 @@ Item {
     // ---- reusable pieces --------------------------------------------------------------
     component Icon: Text {
         property real size: 22
-        color: root.cSubtext
+        color: root.cOnLayer
         font.family: root.iconFont
         font.pixelSize: size
         font.variableAxes: ({ "FILL": 1 })
@@ -122,8 +180,15 @@ Item {
         radius: height / 2
         implicitHeight: 56
         implicitWidth: row.implicitWidth + 16
-        border.width: 1
-        border.color: Qt.rgba(1, 1, 1, 0.05)
+        RectangularShadow {
+            anchors.fill: parent
+            radius: parent.radius
+            blur: 14
+            offset: Qt.vector2d(0, 1)
+            spread: 1
+            color: "#4d000000"
+            z: -1
+        }
         RowLayout {
             id: row
             anchors.fill: parent
@@ -145,7 +210,8 @@ Item {
         Icon {
             anchors.centerIn: parent
             text: ib.icon
-            color: ib.toggled ? root.cOnPrimary : root.cSubtext
+            size: 24
+            color: ib.toggled ? root.cOnPrimary : root.cOnLayer
         }
         HoverHandler { id: hover; cursorShape: Qt.PointingHandCursor }
         TapHandler { onTapped: ib.clicked() }
@@ -177,6 +243,7 @@ Item {
         anchors.fill: parent
         color: "black"
         opacity: 0
+        z: 100
         NumberAnimation on opacity { id: fadeOut; running: false; to: 1; duration: 300 }
     }
 
@@ -193,7 +260,10 @@ Item {
         scale: appear * Math.min(1, (root.width - 24) / width)
         transformOrigin: Item.Bottom
         opacity: 0
-        Component.onCompleted: { appear = 1; opacity = 1; password.forceActiveFocus() }
+        Component.onCompleted: {
+            appear = 1; opacity = 1; password.forceActiveFocus()
+            if (config.previewText) password.text = config.previewText   // preview/testing only
+        }
         Behavior on appear { NumberAnimation { duration: 350; easing.type: Easing.OutCubic } }
         Behavior on opacity { NumberAnimation { duration: 250 } }
 
@@ -209,7 +279,7 @@ Item {
                 Icon { text: "account_circle"; size: 24 }
                 Text {
                     text: root.curUser ? root.curUser.shownName : ""
-                    color: root.cSubtext
+                    color: root.cOnLayer
                     font.family: root.uiFont
                     font.pixelSize: 15
                 }
@@ -223,7 +293,7 @@ Item {
                 Icon { text: "keyboard_alt"; size: 24 }
                 Text {
                     text: keyboard.layouts.length > 0 ? keyboard.layouts[keyboard.currentLayout].shortName : ""
-                    color: root.cSubtext
+                    color: root.cOnLayer
                     font.family: root.uiFont
                     font.pixelSize: 15
                 }
@@ -237,7 +307,7 @@ Item {
                 Icon { text: "desktop_windows"; size: 24 }
                 Text {
                     text: root.curSession ? root.curSession.sName : ""
-                    color: root.cSubtext
+                    color: root.cOnLayer
                     font.family: root.uiFont
                     font.pixelSize: 15
                 }
@@ -249,7 +319,7 @@ Item {
             Item { Layout.preferredWidth: 4 }
         }
 
-        // middle: password pill + confirm
+        // middle: password pill (shape characters) + confirm
         Island {
             id: mainIsland
             anchors.left: leftIsland.right
@@ -262,12 +332,13 @@ Item {
                 Layout.preferredWidth: 240
                 Layout.fillHeight: true
                 echoMode: TextInput.Password
-                passwordCharacter: "•"
                 inputMethodHints: Qt.ImhSensitiveData
                 enabled: !root.busy
-                color: root.cText
-                selectedTextColor: root.cText
-                selectionColor: root.cIslandHigh
+                // The characters are drawn by PasswordChars; the real text stays invisible.
+                color: "transparent"
+                selectedTextColor: "transparent"
+                selectionColor: "transparent"
+                cursorDelegate: Item {}
                 font.family: root.uiFont
                 font.pixelSize: 15
                 leftPadding: 18
@@ -276,6 +347,7 @@ Item {
                 background: Rectangle {
                     color: root.cIslandHigh
                     radius: height / 2
+                    clip: true
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         x: 18
@@ -284,6 +356,13 @@ Item {
                         color: root.failed ? root.cError : root.cSubtext
                         font.family: root.uiFont
                         font.pixelSize: 15
+                    }
+                    PasswordChars {
+                        anchors { fill: parent; leftMargin: 18; rightMargin: 18 }
+                        length: password.text.length
+                        cursorPosition: password.cursorPosition
+                        color: root.cPrimary
+                        settledColor: root.cOnLayer
                     }
                 }
                 onAccepted: root.tryLogin()
@@ -319,10 +398,12 @@ Item {
         }
     }
 
+    // Preview helpers (theme.conf): previewText=abc types characters, previewShot=/x.png saves
+    // a screenshot of the theme and quits. Ignored unless set.
     // Preview helper: with previewShot=/path.png in theme.conf the theme saves a screenshot
     // of itself and quits (used to render the theme headlessly; ignored otherwise).
     Timer {
-        interval: 2500
+        interval: 3500
         running: (config.previewShot || "") !== ""
         onTriggered: root.grabToImage(function (r) { r.saveToFile(config.previewShot); Qt.quit() })
     }
