@@ -1,0 +1,3 @@
+# Copy to ~/.zshrc.local (untracked) for machine-specific settings.
+# alias pamcan=pacman
+# jpn() { jupyter notebook --browser="google-chrome-stable %s" "$@"; }

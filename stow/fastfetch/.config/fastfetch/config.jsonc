@@ -1,0 +1,83 @@
+//   _____ _____ _____ _____ _____ _____ _____ _____ _____
+//  |   __|  _  |   __|_   _|   __|   __|_   _|     |  |  |
+//  |   __|     |__   | | | |   __|   __| | | |   --|     |
+//  |__|  |__|__|_____| |_| |__|  |_____| |_| |_____|__|__|  OS
+//
+//  by Bina
+//
+//  Monochrome theme: every color is a shade of gray / white.
+//  Logo:        38;5;252  (light gray)
+//  Keys:        1;38;5;252 (bold light gray)
+//  Values:      38;5;245  (medium gray)
+
+{
+    "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+    "logo": {
+        "source": "arch_small", // search for logos: fastfetch --list-logos or --print-logos
+        "color": {
+            "1": "1;38;5;231",
+            "2": "1;38;5;231",
+            "3": "1;38;5;231",
+            "4": "1;38;5;231",
+            "5": "1;38;5;231",
+            "6": "1;38;5;231",
+            "7": "1;38;5;231",
+            "8": "1;38;5;231",
+            "9": "1;38;5;231"
+        },
+        "padding": {
+	        "top": 1
+	},
+    },
+    "display": {
+        "separator": "  "
+    },
+    "modules": [
+	"break",
+	{
+            "type": "title",
+            "format": "{6}{7}{8}", // colored placeholders, recolored gray below
+            "color": {
+                "user": "1;38;5;231",
+                "at": "38;5;245",
+                "host": "1;38;5;231"
+            }
+        },
+        {
+            "type": "os",
+            "key": "os    ",
+            "keyColor": "1;38;5;252",  // = color3
+        },
+        {
+            "type": "kernel",
+            "key": "kernel",
+            "keyColor": "1;38;5;252",
+        },
+        {
+            "type": "host",
+            "format": "{5} {1}",
+            "key": "host  ",
+            "keyColor": "1;38;5;252",
+        },
+        {
+            "type": "packages",
+            "format": "{} (pacman)",
+            "key": "pkgs  ",
+            "keyColor": "1;38;5;252",
+        },
+        {
+            "type": "uptime",
+            "format": "{2}h {3}m",
+            "key": "uptime",
+            "keyColor": "1;38;5;252",
+        },
+        {
+            "type": "memory",
+            "key": "memory",
+            "keyColor": "1;38;5;252",
+            "outputColor": "38;5;245",
+            "percent": { "type": ["num"] }, // plain number, no green/yellow/red
+        },
+        "break",
+    ]
+}
