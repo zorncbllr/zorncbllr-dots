@@ -21,9 +21,6 @@
   "conflictKiller": {
     "autoKillTrays": true
   },
-  "lock": {
-    "launchOnStartup": true
-  },
   "sounds": {
     "battery": true,
     "pomodoro": true

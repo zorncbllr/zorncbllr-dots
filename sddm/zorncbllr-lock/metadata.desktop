@@ -1,0 +1,11 @@
+[SddmGreeterTheme]
+Name=zorncbllr-lock
+Description=Login screen styled after the quickshell lock screen
+Author=zorncbllr
+Version=1.0
+Type=sddm-theme
+MainScript=Main.qml
+ConfigFile=theme.conf
+Theme-Id=zorncbllr-lock
+Theme-API=2.0
+QtVersion=6

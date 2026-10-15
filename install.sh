@@ -149,6 +149,10 @@ setup_system() {
   echo i2c-dev | sudo tee /etc/modules-load.d/i2c-dev.conf >/dev/null
   if [[ -d /run/systemd/system ]]; then
     quiet "enabling bluetooth" sudo systemctl enable --now bluetooth || warn "could not enable bluetooth"
+    # Login screen styled after the lock screen (only if SDDM is the display manager here).
+    if command -v sddm >/dev/null; then
+      quiet "installing the SDDM login theme" "$REPO/sddm/install-theme.sh" || warn "SDDM theme not installed; run ./sddm/install-theme.sh"
+    fi
     # The user service needs a login session (XDG_RUNTIME_DIR); not an error without one.
     if [[ -z ${XDG_RUNTIME_DIR:-} ]] || ! systemctl --user enable --now ydotool >/dev/null 2>&1; then
       log "ydotool: no user session here; after logging in run: systemctl --user enable --now ydotool"

@@ -60,12 +60,28 @@ move or delete it, the desktop configs break. If you move it, run `./install.sh`
 4. **Default settings:** on a fresh install `~/.config/illogical-impulse/config.json` is
    seeded once from `stow/quickshell/.config/illogical-impulse/config.json`: only the
    values that differ from the shell's own defaults (Monochrome palette, transparency,
-   12-hour clock, `⌘` as the Super label, lock on startup, tray auto-kill, battery and
+   12-hour clock, `⌘` as the Super label, tray auto-kill, battery and
    pomodoro sounds, clock widget position). An existing config is never touched, and the
    shell is free to rewrite the file afterwards. The wallpaper path is not seeded: first
    run applies `assets/images/default_wallpaper.png`.
 5. **System setup:** adds you to `video,i2c,input`, loads `i2c-dev`, enables
    `bluetooth` and the `ydotool` user service, builds the `pkgfile` database.
+
+### Login screen (SDDM)
+`sddm/zorncbllr-lock` is an SDDM theme styled after the quickshell lock screen: blurred
+wallpaper, big clock, and the same pill-shaped islands (user / keyboard layout / session,
+password field, sleep / reboot / power). `./install.sh` installs it automatically when SDDM
+is present; or run it on its own:
+
+```sh
+./sddm/install-theme.sh --preview   # try it in a window, installs nothing
+./sddm/install-theme.sh             # install (sudo): uses your current wallpaper and palette
+./sddm/install-theme.sh --uninstall
+```
+Re-run it after changing the wallpaper or colour scheme to refresh the login screen. Because
+SDDM already asks for the password, the shell's own lock-on-startup is off by default.
+Needs `sddm`, `qt6-declarative`, and the Rubik and Material Symbols fonts (all in `packages.txt`
+except `sddm` itself).
 
 ### Testing
 `sudo ./tests/fresh-arch.sh` builds a throwaway Arch container with `systemd-nspawn`,
