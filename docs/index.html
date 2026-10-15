@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>zorncbllr-dots — an Arch Linux desktop with one design language</title>
+  <meta name="description" content="Hyprland + quickshell desktop for Arch Linux with a matching zsh/kitty terminal and an SDDM login screen that mirrors the lock screen. One command installs everything.">
+  <meta name="theme-color" content="#131313">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="zorncbllr-dots">
+  <meta property="og:description" content="An Arch Linux desktop with one design language. One command installs it.">
+  <meta property="og:image" content="https://zorncbllr.github.io/zorncbllr-dots/assets/img/desktop.webp">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Rubik:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Material+Symbols+Rounded:opsz,wght,FILL@20..48,100..700,0..1&display=block">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div class="backdrop" aria-hidden="true"><div class="ribbon a"></div><div class="ribbon b"></div></div>
+
+  <!-- top bar (like the shell's bar): brand, section dots + time, GitHub -->
+  <header class="bar">
+    <a class="island brand" href="#top" aria-label="zorncbllr-dots, back to top"><span data-brand-shape style="display:grid;color:var(--primary-container)"></span><span>zorncbllr-dots</span></a>
+    <div class="island bar-center">
+      <div class="dots" id="dots" role="navigation" aria-label="Sections"></div>
+      <span class="when" id="when" aria-hidden="true"></span>
+    </div>
+    <div class="island right">
+      <a class="btn" href="https://github.com/zorncbllr/zorncbllr-dots"><span class="icon">code</span><span class="label">GitHub</span></a>
+    </div>
+  </header>
+
+  <main>
+    <!-- ================= hero ================= -->
+    <section class="hero" id="top" data-ws="Top">
+      <div class="wrap hero-grid">
+        <div>
+          <span class="eyebrow">Arch Linux · Hyprland · quickshell</span>
+          <h1>One design language,<br><span>from login to terminal.</span></h1>
+          <p class="lead">A complete desktop that installs with one command: Material You colours from your wallpaper, a matching zsh and kitty setup, and a login screen that looks exactly like your lock screen.</p>
+          <div class="cta">
+            <a class="btn primary big" href="#install"><span class="icon">download</span>Install</a>
+            <a class="btn tonal big" href="https://github.com/zorncbllr/zorncbllr-dots"><span class="icon">code</span>View on GitHub</a>
+          </div>
+          <div class="cmd">
+            <code><b>git clone</b> https://github.com/zorncbllr/zorncbllr-dots &amp;&amp; cd zorncbllr-dots &amp;&amp; <b>./install.sh</b></code>
+            <button class="btn round primary" data-copy="git clone https://github.com/zorncbllr/zorncbllr-dots && cd zorncbllr-dots && ./install.sh" aria-label="Copy the install command"><span class="icon">content_copy</span></button>
+          </div>
+        </div>
+        <div class="clock-wrap">
+          <div id="clock"></div>
+          <span class="locked-pill"><span class="icon">schedule</span>Your local time</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= features ================= -->
+    <section id="features" data-ws="Features">
+      <div class="wrap">
+        <span class="eyebrow">What you get</span>
+        <h2>Everything in one repo,<br>one command to set it up.</h2>
+        <p class="lead">Built around the Illogical Impulse shell, with the rough edges sanded off: a safe installer, a terminal that matches, and a login screen to finish the picture.</p>
+        <div class="grid cards">
+          <article class="card reveal">
+            <div class="shape t" data-shape="cookie"><span class="icon fill">terminal</span></div>
+            <h3>One command</h3>
+            <p><code>./install.sh</code> installs the packages, links the configs, sets up the system and the login screen. Running it again is safe.</p>
+          </article>
+          <article class="card reveal">
+            <div class="shape s" data-shape="pentagon"><span class="icon fill">link</span></div>
+            <h3>Symlinks, not copies</h3>
+            <p>GNU stow links every file, so your live config <em>is</em> the repo. Existing files are backed up first, and <code>--dry-run</code> shows exactly what would change.</p>
+          </article>
+          <article class="card reveal">
+            <div class="shape p" data-shape="softburst"><span class="icon fill">palette</span></div>
+            <h3>Colours from your wallpaper</h3>
+            <p>Material You colours are generated from the wallpaper and reach the shell, the terminal and even the login screen.</p>
+          </article>
+          <article class="card reveal">
+            <div class="shape s" data-shape="clover"><span class="icon fill">lock</span></div>
+            <h3>A login screen that matches</h3>
+            <p>An SDDM theme that reproduces the lock screen: blurred wallpaper, cookie clock, pill-shaped islands, shape characters as you type.</p>
+          </article>
+          <article class="card reveal">
+            <div class="shape t" data-shape="diamond"><span class="icon fill">code</span></div>
+            <h3>zsh without the bloat</h3>
+            <p>zsh, kitty, starship and fastfetch from plain Arch packages, with autosuggestions and syntax highlighting. No oh-my-zsh.</p>
+          </article>
+          <article class="card reveal">
+            <div class="shape p" data-shape="circle"><span class="icon fill">autorenew</span></div>
+            <h3>Quiet and resumable</h3>
+            <p>One line per step, retries on a flaky network, full details in a log. If something stops, run it again and it picks up where it left off.</p>
+          </article>
+          <article class="card reveal">
+            <div class="shape s" data-shape="pill"><span class="icon fill">verified</span></div>
+            <h3>Tested from scratch</h3>
+            <p><code>tests/fresh-arch.sh</code> builds a fresh Arch container, runs the real installer and checks the result, including the login theme.</p>
+          </article>
+          <article class="card reveal">
+            <div class="shape t" data-shape="clover"><span class="icon fill">tune</span></div>
+            <h3>Your settings stay yours</h3>
+            <p>Defaults are seeded once and never overwrite an existing config. Machine-specific tweaks go in <code>~/.zshrc.local</code>, untracked.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= look ================= -->
+    <section id="look" data-ws="Look">
+      <div class="wrap">
+        <span class="eyebrow">The look</span>
+        <h2>Soft, dark, and consistent.</h2>
+        <p class="lead">A monochrome Material You scheme with rounded shapes and springy motion. Click any screenshot to enlarge it.</p>
+        <div class="shots">
+          <figure class="shot wide reveal"><img src="assets/img/desktop.webp" width="1600" height="900" loading="lazy" decoding="async" alt="The desktop: top bar, media card, cookie clock, fastfetch and audio visualiser widgets over a soft light ribbon wallpaper"><figcaption>Desktop</figcaption></figure>
+          <figure class="shot reveal"><img src="assets/img/login.webp" width="1600" height="900" loading="lazy" decoding="async" alt="The SDDM login screen: blurred wallpaper, cookie clock, Locked pill and three islands with the password field showing shapes"><figcaption>Login screen</figcaption></figure>
+          <figure class="shot reveal"><img src="assets/img/settings.webp" width="1600" height="900" loading="lazy" decoding="async" alt="The settings app with wallpaper and colour options, next to the fastfetch and audio visualiser widgets"><figcaption>Settings</figcaption></figure>
+          <figure class="shot reveal"><img src="assets/img/sidebar-settings.webp" width="1600" height="900" loading="lazy" decoding="async" alt="The AI sidebar open on the left with the settings app on the right"><figcaption>AI sidebar</figcaption></figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= login screen ================= -->
+    <section id="login" data-ws="Login screen">
+      <div class="wrap split">
+        <div class="reveal">
+          <span class="eyebrow">Login screen</span>
+          <h2>Your lock screen,<br>at the front door.</h2>
+          <p class="lead">The SDDM theme is a port of the real lock screen components, so logging in feels like unlocking. Because SDDM already asked for the password, the shell's lock-on-startup is off by default.</p>
+          <p class="demo-label"><span class="icon">keyboard</span>Try the password field. Every key becomes a shape, as on the real thing.</p>
+          <div class="island demo-dock">
+            <div class="field" id="field">
+              <input type="password" autocomplete="new-password" autocapitalize="off" spellcheck="false" aria-label="Demo password field (nothing is sent anywhere)">
+              <span class="ph">Enter password</span>
+              <div class="chars"><div class="row"><span class="caret"></span></div></div>
+            </div>
+            <button class="btn round primary" data-demo-btn aria-label="Unlock (demo)"><span class="icon">arrow_right_alt</span></button>
+          </div>
+          <p class="fine">Demo only: nothing is checked or sent anywhere. Enter always answers "Incorrect password".</p>
+        </div>
+        <div class="reveal">
+          <figure class="shot" style="cursor:zoom-in"><img src="assets/img/login.webp" width="1600" height="900" loading="lazy" decoding="async" alt="The SDDM login screen"><figcaption>The installed theme</figcaption></figure>
+          <ul style="color:var(--on-variant);margin:22px 0 0;padding-left:1.2em">
+            <li>Wallpaper, palette and fonts come from your desktop</li>
+            <li>Unlock animation: blur drops, wallpaper zooms back, the clock glides to its desktop spot</li>
+            <li>Battery, sleep, reboot and power in the right island</li>
+            <li>Falls back gracefully without GPU effects</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= install ================= -->
+    <section id="install" data-ws="Install">
+      <div class="wrap">
+        <span class="eyebrow">Install</span>
+        <h2>Three steps, one command.</h2>
+        <p class="lead">Arch Linux only. Run it as your normal user; it asks for <code>sudo</code> when it needs it. Anything it would overwrite is moved to <code>~/.dotfiles-backup-&lt;time&gt;/</code> first.</p>
+        <div class="steps">
+          <div class="step reveal">
+            <div>
+              <h3>Clone</h3>
+              <p>Keep the clone where you put it: the symlinks point into it.</p>
+              <div class="term"><code>git clone https://github.com/zorncbllr/zorncbllr-dots ~/zorncbllr-dots
+cd ~/zorncbllr-dots</code><button class="btn round" data-copy="git clone https://github.com/zorncbllr/zorncbllr-dots ~/zorncbllr-dots && cd ~/zorncbllr-dots" aria-label="Copy"><span class="icon">content_copy</span></button></div>
+            </div>
+          </div>
+          <div class="step reveal">
+            <div>
+              <h3>Preview, then install</h3>
+              <p>The preview lists what would be linked and which of your files differ. The install does everything: packages, links, system setup, the login screen.</p>
+              <div class="term"><code><span class="c"># see what would change, touches nothing</span>
+./install.sh --dry-run</code><button class="btn round" data-copy="./install.sh --dry-run" aria-label="Copy"><span class="icon">content_copy</span></button></div>
+              <div class="term"><code>./install.sh</code><button class="btn round" data-copy="./install.sh" aria-label="Copy"><span class="icon">content_copy</span></button></div>
+            </div>
+          </div>
+          <div class="step reveal">
+            <div>
+              <h3>Log out and back in</h3>
+              <p>That applies the new groups and login shell, and shows the new login screen.</p>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="opts-title">Options</h3>
+        <table class="reveal">
+          <tr><td>--dry-run</td><td>Show what would be linked or backed up; change nothing.</td></tr>
+          <tr><td>--no-deps</td><td>Skip package installation and the python venv.</td></tr>
+          <tr><td>--no-system</td><td>Skip groups, services and the login screen.</td></tr>
+          <tr><td>--no-sddm</td><td>Don't install the login theme or enable SDDM.</td></tr>
+          <tr><td>--no-chsh</td><td>Keep your current login shell.</td></tr>
+          <tr><td>--sddm-only</td><td>Only (re)install the login screen, e.g. after changing the wallpaper.</td></tr>
+          <tr><td>--sddm-preview</td><td>Look at the login screen in a window; installs nothing, no root.</td></tr>
+          <tr><td>--verbose</td><td>Show all tool output instead of the one-line steps.</td></tr>
+          <tr><td>zsh kitty …</td><td>Only link these packages, e.g. <code>./install.sh zsh kitty</code>.</td></tr>
+        </table>
+        <p class="fine">To undo: <code>./uninstall.sh</code> removes the symlinks (add <code>--with-sddm</code> to remove the login theme too). Packages and your backups stay.</p>
+      </div>
+    </section>
+
+    <!-- ================= faq ================= -->
+    <section id="faq" data-ws="FAQ">
+      <div class="wrap">
+        <span class="eyebrow">Questions</span>
+        <h2>Good to know.</h2>
+        <div class="faq">
+          <details class="reveal"><summary>Will it overwrite my configs?<span class="icon">add</span></summary><p>Not silently. Files that already exist are moved to a timestamped backup folder before linking, <code>--dry-run</code> shows which of your files differ from the repo, and the default settings are only seeded when no config exists.</p></details>
+          <details class="reveal"><summary>Do I have to use SDDM?<span class="icon">add</span></summary><p>No. <code>--no-sddm</code> skips the login screen entirely. If another display manager (GDM, LightDM…) is already enabled, the installer installs the theme but leaves your display manager alone and tells you how to switch.</p></details>
+          <details class="reveal"><summary>Does it work on other distributions?<span class="icon">add</span></summary><p>No, it targets Arch Linux: it uses <code>pacman</code> and <code>yay</code> and the Arch package names.</p></details>
+          <details class="reveal"><summary>How do I refresh the login screen after changing my wallpaper?<span class="icon">add</span></summary><p>Run <code>./install.sh --sddm-only</code>. The login screen can't read your home folder, so the installer copies the wallpaper and palette into the theme; re-running it picks up the current ones.</p></details>
+          <details class="reveal"><summary>Where does this come from?<span class="icon">add</span></summary><p>It is a fork of <a href="https://github.com/end-4/dots-hyprland">end-4/dots-hyprland</a> (Illogical Impulse) with a new installer, a zsh-first terminal, defaults of its own and the login theme. It stays under the same GPL-3.0 licence.</p></details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap foot">
+      <div>
+        <p><strong style="color:var(--on-surface)">zorncbllr-dots</strong> · GPL-3.0</p>
+        <p>Derived from <a href="https://github.com/end-4/dots-hyprland">end-4/dots-hyprland</a> (Illogical Impulse) and its contributors. This page uses the same palette, shapes and motion as the desktop it describes.</p>
+      </div>
+      <nav aria-label="Footer">
+        <a class="btn tonal" href="https://github.com/zorncbllr/zorncbllr-dots"><span class="icon">code</span>Source</a>
+        <a class="btn tonal" href="https://github.com/zorncbllr/zorncbllr-dots/blob/main/LICENSE"><span class="icon">gavel</span>Licence</a>
+        <a class="btn tonal" href="https://github.com/end-4/dots-hyprland"><span class="icon">favorite</span>Upstream</a>
+      </nav>
+    </div>
+  </footer>
+
+  <!-- dock (like the lock screen's islands): sections, install command, source -->
+  <nav class="dock" aria-label="Quick links">
+    <div class="island hide-sm">
+      <a class="btn link" href="#features"><span class="icon fill">apps</span>Features</a>
+      <a class="btn link" href="#look"><span class="icon fill">image</span>Look</a>
+      <a class="btn link" href="#login"><span class="icon fill">lock</span>Login</a>
+    </div>
+    <div class="island dock-cmd">
+      <code>./install.sh</code>
+      <button class="btn round primary" data-copy="git clone https://github.com/zorncbllr/zorncbllr-dots && cd zorncbllr-dots && ./install.sh" aria-label="Copy the full install command"><span class="icon">content_copy</span></button>
+    </div>
+    <div class="island hide-sm">
+      <a class="btn link" href="#install"><span class="icon">download</span>Install</a>
+    </div>
+  </nav>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <dialog class="lightbox" id="lightbox" aria-label="Screenshot"><img alt=""></dialog>
+
+  <script src="assets/app.js" defer></script>
+</body>
+</html>
