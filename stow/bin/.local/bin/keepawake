@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Toggle "keep awake" mode.
+#
+# Holds a *block* inhibitor on logind's idle:sleep while on. That does two things:
+#   1. blocks suspend/hibernate requested by anyone (including hypridle's own listener)
+#   2. reaches hypridle via the BlockInhibited signal, so it swaps its idle timers
+#      to respect inhibits -> lock, screen-off and suspend are all suppressed
+#
+# Toggle again to release.
+
+set -u
+
+PIDFILE="${XDG_RUNTIME_DIR:-/tmp}/keepawake.pid"
+REASON="Keep awake"
+
+running() {
+    [[ -f $PIDFILE ]] || return 1
+    local pid
+    pid=$(<"$PIDFILE") || return 1
+    [[ -n $pid ]] && kill -0 "$pid" 2>/dev/null
+}
+
+if running; then
+    kill "$(<"$PIDFILE")" 2>/dev/null
+    rm -f "$PIDFILE"
+    command -v notify-send >/dev/null &&
+        notify-send -a "Keep awake" -u low "Off" "Sleep and screen blanking will resume."
+    exit 0
+fi
+
+rm -f "$PIDFILE"
+setsid systemd-inhibit --what=idle:sleep --mode=block --why="$REASON" sleep infinity \
+    >/dev/null 2>&1 &
+echo $! >"$PIDFILE"
+
+sleep 0.3
+if running; then
+    command -v notify-send >/dev/null &&
+        notify-send -a "Keep awake" -u low "On" "System will stay awake until you toggle again."
+else
+    rm -f "$PIDFILE"
+    command -v notify-send >/dev/null &&
+        notify-send -a "Keep awake" -u critical "Failed" "Could not acquire inhibitor."
+    exit 1
+fi
