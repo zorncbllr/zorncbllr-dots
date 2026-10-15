@@ -13,7 +13,6 @@ set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 M="${MACHINE_DIR:-/var/lib/machines/dots-test}"
 NAME=dots-test
-MIRROR=https://geo.mirror.pkgbuild.com
 LOG="${LOG:-/tmp/dots-fresh-test.log}"
 KEEP=false; [[ ${1:-} == --keep ]] && KEEP=true
 exec > >(tee "$LOG") 2>&1
@@ -35,16 +34,24 @@ cleanup() {
 trap cleanup EXIT
 
 step "bootstrap ($M)"
+# Mirrors hosting iso/latest; tried in order. The host's own pacman mirror first.
+MIRRORS=("$(grep -m1 '^Server' /etc/pacman.d/mirrorlist | sed -E 's/^Server *= *//; s#/\$repo/os/\$arch##')"
+         https://mirror.rackspace.com/archlinux https://geo.mirror.pkgbuild.com)
 if [[ ! -d $M/usr ]]; then
-  mkdir -p "$M"; tmp=$(mktemp -d)
-  curl -fL --retry 3 -o "$tmp/b.tar.zst" "$MIRROR/iso/latest/archlinux-bootstrap-x86_64.tar.zst"
-  curl -fL --retry 3 -o "$tmp/sums" "$MIRROR/iso/latest/sha256sums.txt"
-  awk '$2=="archlinux-bootstrap-x86_64.tar.zst"{print $1"  b.tar.zst"}' "$tmp/sums" > "$tmp/sum"
-  (cd "$tmp" && sha256sum -c sum)
+  mkdir -p "$M"; tmp=$(mktemp -d); got=false
+  for mirror in "${MIRRORS[@]}"; do
+    echo "trying $mirror"
+    if curl -fL --retry 5 --retry-delay 3 --retry-all-errors -o "$tmp/b.tar.zst" "$mirror/iso/latest/archlinux-bootstrap-x86_64.tar.zst" &&
+       curl -fL --retry 5 --retry-delay 3 --retry-all-errors -o "$tmp/sums" "$mirror/iso/latest/sha256sums.txt" &&
+       awk '$2=="archlinux-bootstrap-x86_64.tar.zst"{print $1"  b.tar.zst"}' "$tmp/sums" > "$tmp/sum" &&
+       (cd "$tmp" && sha256sum -c sum); then got=true; break; fi
+  done
+  $got || { echo "could not download a verified bootstrap tarball from any mirror" >&2; exit 1; }
   bsdtar -xpf "$tmp/b.tar.zst" -C "$M" --strip-components=1 --numeric-owner
   rm -rf "$tmp"
 fi
-echo "Server = $MIRROR/\$repo/os/\$arch" > "$M/etc/pacman.d/mirrorlist"
+# Reuse the host's mirrorlist: those mirrors are known to work from this network.
+cp /etc/pacman.d/mirrorlist "$M/etc/pacman.d/mirrorlist"
 
 step "base system + test user"
 nsp bash -c 'pacman-key --init && pacman-key --populate archlinux &&
