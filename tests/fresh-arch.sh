@@ -58,9 +58,10 @@ rm -f "$M/etc/resolv.conf"
 { grep -m2 '^nameserver' /etc/resolv.conf; echo "nameserver 1.1.1.1"; echo "nameserver 9.9.9.9"; } > "$M/etc/resolv.conf"
 
 step "base system + test user"
-nsp bash -c 'pacman-key --init && pacman-key --populate archlinux &&
-  pacman -Syu --noconfirm --needed base-devel git sudo &&
-  { id tester >/dev/null 2>&1 || useradd -m -G wheel tester; } &&
+retry() { local i; for i in 1 2 3 4; do "$@" && return 0; echo "attempt $i failed: $*; retrying in $((i*10))s" >&2; sleep $((i*10)); done; return 1; }
+retry nsp bash -c 'pacman-key --init && pacman-key --populate archlinux &&
+  pacman -Syu --noconfirm --needed base-devel git sudo'
+nsp bash -c '{ id tester >/dev/null 2>&1 || useradd -m -G wheel tester; } &&
   echo "%wheel ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/wheel'
 rm -rf "$M/home/tester/zorncbllr-dots"
 cp -a "$REPO" "$M/home/tester/zorncbllr-dots"

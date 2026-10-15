@@ -43,25 +43,53 @@ fi
 for p in "${PKGS[@]}"; do [[ -d $STOW_DIR/$p ]] || die "no such package: $p"; done
 
 # --- dependencies -------------------------------------------------------------
+# Network steps are retried: a flaky LAN resolver or mirror must not abort a
+# half-finished install. Every retried command is idempotent (--needed, makepkg
+# on a fresh copy, uv pip install).
+retry() {
+  local _try=1 _max=${RETRIES:-4}
+  until "$@"; do
+    (( _try >= _max )) && return 1
+    warn "attempt $_try/$_max failed: $1 ...; retrying in $((_try * 10))s"
+    sleep $((_try * 10)); _try=$((_try + 1))
+  done
+}
+
+check_network() {
+  local h
+  for h in archlinux.org aur.archlinux.org github.com; do
+    retry getent hosts "$h" >/dev/null || die "cannot resolve $h; check your network/DNS and re-run"
+  done
+}
+
+# Never wait on an interactive prompt (clean-build / diff / edit questions).
+YAY_FLAGS=(--needed --noconfirm --answerclean None --answerdiff None --answeredit None --answerupgrade None)
+
+install_yay() {
+  local tmp rc; tmp=$(mktemp -d)
+  git clone https://aur.archlinux.org/yay-bin.git "$tmp/yay-bin" &&
+    (cd "$tmp/yay-bin" && makepkg -si --noconfirm)
+  rc=$?; rm -rf "$tmp"; return $rc
+}
+
 ensure_yay() {
   command -v yay >/dev/null && return
   log "installing yay"
-  sudo pacman -S --needed --noconfirm base-devel git
-  local tmp; tmp=$(mktemp -d)
-  git clone https://aur.archlinux.org/yay-bin.git "$tmp/yay-bin"
-  (cd "$tmp/yay-bin" && makepkg -si --noconfirm)
-  rm -rf "$tmp"
+  retry sudo pacman -S --needed --noconfirm base-devel git || die "could not install base-devel/git"
+  retry install_yay || die "could not install yay"
 }
 
 build_local_pkg() { # PKGBUILDs shipped in sdata/dist-arch that aren't in the AUR
-  local dir=$1
+  local dir=$1 tmp rc
   pacman -Qq "${dir##*/}" >/dev/null 2>&1 && return
   log "building ${dir##*/}"
-  (cd "$dir" && makepkg -si --noconfirm)
+  tmp=$(mktemp -d)                  # build in a copy: keep src/ and pkg/ out of the repo
+  cp -r "$dir/." "$tmp/"
+  (cd "$tmp" && retry makepkg -si --noconfirm)
+  rc=$?; rm -rf "$tmp"; return $rc
 }
 
-install_deps() {
-  ensure_yay
+install_missing() {
   local all missing
   mapfile -t all < <(grep -vE '^\s*(#|$)' "$REPO/packages/packages.txt")
   # pacman -T prints only unsatisfied dependencies and honours "provides", so
@@ -69,21 +97,31 @@ install_deps() {
   mapfile -t missing < <(pacman -T "${all[@]}" || true)
   if (( ${#missing[@]} )); then
     log "installing ${#missing[@]} missing package(s): ${missing[*]}"
-    yay -S --needed --noconfirm "${missing[@]}"
+    yay -S "${YAY_FLAGS[@]}" "${missing[@]}"
   else
     log "all ${#all[@]} packages already satisfied"
   fi
-  for d in "$REPO"/sdata/dist-arch/illogical-impulse-{microtex-git,bibata-modern-classic-bin}; do
-    [[ -f $d/PKGBUILD ]] && build_local_pkg "$d"
-  done
-  # python venv used by the quickshell scripts
+}
+
+setup_venv() {
   local venv="$STATE/quickshell/.venv"
-  if [[ ! -d $venv ]]; then
+  # A directory alone proves nothing (an interrupted run leaves one): check for python.
+  if [[ ! -x $venv/bin/python ]]; then
     log "creating python venv ($venv)"
     mkdir -p "$venv"
-    uv venv --prompt .venv "$venv" -p 3.12
-    VIRTUAL_ENV="$venv" uv pip install -r "$REPO/sdata/uv/requirements.txt"
+    uv venv --prompt .venv "$venv" -p 3.12 || return 1
   fi
+  VIRTUAL_ENV="$venv" uv pip install -r "$REPO/sdata/uv/requirements.txt"   # no-op when satisfied
+}
+
+install_deps() {
+  check_network
+  ensure_yay
+  retry install_missing || die "package installation failed; re-run ./install.sh (it resumes)"
+  for d in "$REPO"/sdata/dist-arch/illogical-impulse-{microtex-git,bibata-modern-classic-bin}; do
+    [[ -f $d/PKGBUILD ]] && { build_local_pkg "$d" || die "failed to build ${d##*/}; re-run ./install.sh"; }
+  done
+  retry setup_venv || die "python venv setup failed; re-run ./install.sh"
 }
 
 setup_system() {
