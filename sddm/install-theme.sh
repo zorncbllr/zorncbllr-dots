@@ -123,7 +123,7 @@ case $MODE in
     sudo chmod -R a+rX "$DEST"
     sudo install -d /etc/sddm.conf.d
     # GreeterEnvironment lets the theme read /sys/class/power_supply (battery indicator)
-    printf '[Theme]\nCurrent=zorncbllr-lock\nCursorTheme=Bibata-Modern-Classic\n\n[General]\nGreeterEnvironment=QML_XHR_ALLOW_FILE_READ=1\n' | sudo tee "$CONF" >/dev/null
+    printf '[Theme]\nCurrent=zorncbllr-lock\nCursorTheme=Bibata-Modern-Classic\n\n[General]\nInputMethod=\nGreeterEnvironment=QML_XHR_ALLOW_FILE_READ=1\n' | sudo tee "$CONF" >/dev/null
     log "done. The new login screen shows from the next logout/reboot."
     ;;
 esac

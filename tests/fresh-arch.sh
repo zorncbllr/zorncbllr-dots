@@ -83,6 +83,7 @@ step "phase 1 checks"
 check "yay installed"                      as_user 'command -v yay'
 check "zsh + plugins installed"            as_user 'pacman -Q zsh zsh-autosuggestions zsh-syntax-highlighting pkgfile'
 check "quickshell + hyprland installed"    as_user 'pacman -Q quickshell hyprland'
+check "sddm installed (one command)"       as_user 'pacman -Q sddm'
 check "MicroTeX built and installed"       as_user 'pacman -Q illogical-impulse-microtex-git'
 check "cursor theme built and installed"   as_user 'pacman -Q illogical-impulse-bibata-modern-classic-bin'
 check "python venv created"                as_user 'test -x ~/.local/state/quickshell/.venv/bin/python'
@@ -106,6 +107,17 @@ check "i2c group exists"                   systemd-run -q -M "$NAME" --wait --pi
 check "tester is in video,i2c,input"       systemd-run -q -M "$NAME" --wait --pipe bash -c 'id -nG tester | tr " " "\n" | grep -cx -e video -e i2c -e input | grep -qx 3'
 check "i2c-dev module config written"      test -f "$M/etc/modules-load.d/i2c-dev.conf"
 check "bluetooth service enabled"          systemd-run -q -M "$NAME" --wait --pipe systemctl is-enabled bluetooth
+check "SDDM theme installed"               test -f "$M/usr/share/sddm/themes/zorncbllr-lock/Main.qml"
+check "SDDM theme bundles shapes + wallpaper" bash -c "test -f '$M/usr/share/sddm/themes/zorncbllr-lock/shapes/ShapeCanvas.qml' -a -s '$M/usr/share/sddm/themes/zorncbllr-lock/background.png'"
+check "SDDM config selects the theme"      grep -q '^Current=zorncbllr-lock' "$M/etc/sddm.conf.d/10-zorncbllr.conf"
+check "SDDM service enabled"               systemd-run -q -M "$NAME" --wait --pipe systemctl is-enabled sddm
+# the installed theme must actually load and render (headless greeter, preview screenshot)
+systemd-run -q -M "$NAME" --wait --pipe -p User=tester --setenv=HOME=/home/tester --setenv=QT_QPA_PLATFORM=offscreen \
+  --setenv=QML_XHR_ALLOW_FILE_READ=1 bash -c '
+    rm -rf /tmp/sddm-t && cp -r /usr/share/sddm/themes/zorncbllr-lock /tmp/sddm-t &&
+    printf "\nshowPowerAlways=true\npreviewText=abc\npreviewShot=/tmp/sddm-shot.png\n" >> /tmp/sddm-t/theme.conf &&
+    timeout 60 sddm-greeter-qt6 --test-mode --theme /tmp/sddm-t >/tmp/sddm-greeter.log 2>&1; true' >/dev/null 2>&1 || true
+check "SDDM theme renders in a fresh container" test -s "$M/tmp/sddm-shot.png"
 
 step "result: $PASS passed, $FAIL failed (log: $LOG)"
 (( FAIL == 0 ))

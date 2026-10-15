@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # zorncbllr-dots installer — Arch Linux only. Symlinks configs with GNU stow.
 #
-#   ./install.sh [--dry-run] [--no-deps] [--no-system] [--no-chsh] [--verbose] [pkg ...]
+#   ./install.sh [--dry-run] [--no-deps] [--no-system] [--no-sddm] [--no-chsh] [--verbose] [pkg ...]
 #
 #   --dry-run    show what would be linked (stow -n); change nothing
 #   --no-deps    skip installing packages (yay) and python venv
-#   --no-system  skip groups / services / modules (needs sudo)
+#   --no-system  skip groups / services / modules / login screen (needs sudo)
+#   --no-sddm    don't install the SDDM login theme or enable SDDM
 #   --no-chsh    don't change the login shell to zsh
 #   --verbose    show all tool output (default: a log in ~/.local/state/zorncbllr-dots/install.log)
 #   pkg ...      only link these stow packages (default: all in ./stow)
@@ -17,13 +18,14 @@ TARGET="${HOME}"
 STATE="${XDG_STATE_HOME:-$HOME/.local/state}"
 BACKUP="$HOME/.dotfiles-backup-$(date +%Y%m%d-%H%M%S)"
 
-DRY=false DEPS=true SYSTEM=true CHSH=true VERBOSE=false
+DRY=false DEPS=true SYSTEM=true SDDM=true CHSH=true VERBOSE=false
 PKGS=()
 for a in "$@"; do
   case $a in
     --dry-run) DRY=true ;;
     --no-deps) DEPS=false ;;
     --no-system) SYSTEM=false ;;
+    --no-sddm) SDDM=false ;;
     --no-chsh) CHSH=false ;;
     --verbose) VERBOSE=true ;;
     -h|--help) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
@@ -149,15 +151,35 @@ setup_system() {
   echo i2c-dev | sudo tee /etc/modules-load.d/i2c-dev.conf >/dev/null
   if [[ -d /run/systemd/system ]]; then
     quiet "enabling bluetooth" sudo systemctl enable --now bluetooth || warn "could not enable bluetooth"
-    # Login screen styled after the lock screen (only if SDDM is the display manager here).
-    if command -v sddm >/dev/null; then
-      quiet "installing the SDDM login theme" "$REPO/sddm/install-theme.sh" || warn "SDDM theme not installed; run ./sddm/install-theme.sh"
-    fi
     # The user service needs a login session (XDG_RUNTIME_DIR); not an error without one.
     if [[ -z ${XDG_RUNTIME_DIR:-} ]] || ! systemctl --user enable --now ydotool >/dev/null 2>&1; then
       log "ydotool: no user session here; after logging in run: systemctl --user enable --now ydotool"
     fi
   fi
+}
+
+# --- login screen (SDDM) ------------------------------------------------------
+# Installs the lock-screen-styled theme and makes SDDM the display manager, unless some
+# other display manager is already enabled (then yours is left alone and you are told how
+# to switch). The theme uses your current wallpaper/palette when they exist, else defaults.
+setup_sddm() {
+  if ! command -v sddm >/dev/null; then
+    warn "sddm is not installed, so the login screen was skipped (re-run without --no-deps)"
+    return 0
+  fi
+  quiet "installing the SDDM login theme" "$REPO/sddm/install-theme.sh" ||
+    { warn "SDDM theme not installed; run ./sddm/install-theme.sh to retry"; return 0; }
+  [[ -d /run/systemd/system ]] || { log "no systemd here: enable SDDM yourself (sudo systemctl enable sddm)"; return 0; }
+
+  local current=""
+  if systemctl is-enabled display-manager.service >/dev/null 2>&1; then
+    current=$(systemctl show display-manager.service -p Id --value 2>/dev/null || true)
+  fi
+  case $current in
+    "")           quiet "enabling SDDM" sudo systemctl enable sddm || warn "could not enable SDDM; run: sudo systemctl enable sddm" ;;
+    sddm.service) log "SDDM is already the display manager" ;;
+    *)            warn "another display manager ($current) is enabled, so it was left alone; to switch: sudo systemctl enable --force sddm" ;;
+  esac
 }
 
 # --- linking ------------------------------------------------------------------
@@ -222,6 +244,7 @@ fi
 $DEPS && install_deps
 for p in "${PKGS[@]}"; do report_conflicts "$p"; log "linking $p"; link_pkg "$p"; done
 $SYSTEM && setup_system
+$SYSTEM && $SDDM && setup_sddm
 
 if $CHSH && [[ $(basename "$(getent passwd "$USER" | cut -d: -f7)") != zsh ]]; then
   log "changing login shell to zsh"

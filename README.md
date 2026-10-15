@@ -36,7 +36,8 @@ move or delete it, the desktop configs break. If you move it, run `./install.sh`
 |---|---|
 | `--dry-run` | change nothing; show what would be linked or backed up |
 | `--no-deps` | skip package installation and the python venv |
-| `--no-system` | skip groups, kernel module and services (needs sudo) |
+| `--no-system` | skip groups, kernel module, services and the login screen (needs sudo) |
+| `--no-sddm` | don't install the SDDM theme or enable SDDM |
 | `--no-chsh` | keep your current login shell |
 | `--verbose` | show all tool output (default: concise steps; details in `~/.local/state/zorncbllr-dots/install.log`) |
 | `<pkg> ...` | only link these stow packages, e.g. `./install.sh zsh kitty` |
@@ -62,6 +63,7 @@ move or delete it, the desktop configs break. If you move it, run `./install.sh`
    run applies `assets/images/default_wallpaper.png`.
 5. **System setup:** adds you to `video,i2c,input`, loads `i2c-dev`, enables
    `bluetooth` and the `ydotool` user service, builds the `pkgfile` database.
+6. **Login screen:** installs the SDDM theme and enables SDDM (see below).
 
 ### Login screen (SDDM)
 `sddm/zorncbllr-lock` is an SDDM theme that reproduces the quickshell lock screen: the
@@ -70,8 +72,10 @@ month bubbles) with the "Locked" pill, and the same pill-shaped islands (user / 
 session, password field, battery / sleep / reboot / power). Typed characters appear as Material shapes
 like on the lock screen, and a correct password plays the same unlock animation (blur drops,
 wallpaper zooms back, the clock glides to its desktop position, islands fade out). It is a port of the real components, using the bundled
-rounded-polygon library. `./install.sh` installs it automatically when SDDM is present; or
-run it on its own:
+rounded-polygon library. **`./install.sh` does all of it in one go**: it installs SDDM, installs
+the theme (with your wallpaper, palette and fonts when they exist, defaults on a fresh machine)
+and enables SDDM. If another display manager is already enabled it is left alone and you get
+the command to switch; `--no-sddm` skips all of this. To redo just the login screen:
 
 ```sh
 ./sddm/install-theme.sh --preview   # try it in a window, installs nothing, no root
@@ -89,8 +93,8 @@ The battery indicator reads `/sys/class/power_supply`; the installer enables tha
 with `GreeterEnvironment=QML_XHR_ALLOW_FILE_READ=1` in `/etc/sddm.conf.d/10-zorncbllr.conf`.
 The right-hand island hides itself when there is no battery and no power action to show.
 Since SDDM already asks for the password, the shell's own lock-on-startup is off by default.
-Needs `sddm`, `qt6-declarative`, `rsync`, and the Space Grotesk and Material Symbols fonts
-(all in `packages.txt` except `sddm` itself).
+Everything it needs (`sddm`, `qt6-declarative`, `rsync`, the Space Grotesk and Material Symbols
+fonts) is in `packages.txt`.
 
 ### Testing
 `sudo ./tests/fresh-arch.sh` builds a throwaway Arch container with `systemd-nspawn`,

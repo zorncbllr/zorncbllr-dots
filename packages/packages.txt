@@ -11,6 +11,7 @@ fastfetch
 eza
 stow
 kitty
+sddm
 # --- desktop ---
 adw-gtk-theme-git
 bc
